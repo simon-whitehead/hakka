@@ -100,7 +100,7 @@ fn main() {
                     println!("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
                               in 0x00.");
                 } else {
-                    let dst = u8::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
+                    let dst = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
                     let src = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
 
                     cpu.memory[dst as usize] = src;
