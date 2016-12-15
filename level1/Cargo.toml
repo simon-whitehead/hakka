@@ -1,0 +1,11 @@
+[package]
+name = "hakka"
+version = "0.1.0"
+authors = ["Simon Whitehead <chemnova@gmail.com>"]
+
+[dependencies]
+rs6502 = { path = "../../rs6502" }
+
+[dependencies.sdl2]
+version = "*"
+features = ["image"]
