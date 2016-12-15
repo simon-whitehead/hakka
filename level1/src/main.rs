@@ -95,6 +95,8 @@ fn main() {
             }
         }
 
+        ship.process(&cpu.memory[..]);
+
         for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
@@ -111,8 +113,6 @@ fn main() {
             }
         }
 
-        ship.process(&cpu.memory[..]);
-
         if frame_cap(&sdl_context, &mut timer) {
 
             if !cpu.flags.interrupt_disabled {
@@ -126,7 +126,10 @@ fn main() {
         let now = sdl_context.timer().unwrap().ticks();
         let delta = now - monitor_last;
         if delta > 1000 && monitor_enabled {
-            println!("{:?}", &cpu.memory[0x00..0xA]);
+            for b in &cpu.memory[0x00..0xA] {
+                print!("{:02X} ", *b);
+            }
+            println!("");
             monitor_last = now;
         }
 
