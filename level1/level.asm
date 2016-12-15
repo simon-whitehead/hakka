@@ -16,13 +16,15 @@ KEY = $04
 MOV_0 = $05
 MOV_1 = $06
 
+GameLoop
+
 SEI
 JSR RightArrow
 JSR LeftArrow
 JSR AdjustOffscreen
 CLI
 
-JMP END
+JMP GameLoop
 
 RightArrow:
 
@@ -44,7 +46,7 @@ RTS
 LeftArrow:
 
 LDA KEY
-CMP #37 ; Was the right arrow pressed?
+CMP #37 ; Was the left arrow pressed?
 BNE LeftArrowEnd
 
 SEC

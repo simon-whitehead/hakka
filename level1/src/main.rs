@@ -45,7 +45,7 @@ fn main() {
     cpu.memory[0x05] = 0x19;
     cpu.memory[0x06] = 0x00;
 
-    let mut timer = FrameTimer::new(1000 / 120, 0, 0, 0);
+    let mut timer = FrameTimer::new(1000 / 240, 0, 0, 0);
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -70,8 +70,8 @@ fn main() {
     let mut monitor_last = 0;
 
     'running: loop {
+        cpu.step();
 
-        cpu.step_n(4);
         if let Ok(input) = rx.try_recv() {
             let input = input.trim();
             if input == "exit" {
@@ -111,8 +111,9 @@ fn main() {
             }
         }
 
+        ship.process(&cpu.memory[..]);
+
         if frame_cap(&sdl_context, &mut timer) {
-            ship.process(&cpu.memory[..]);
 
             if !cpu.flags.interrupt_disabled {
                 // Render stuff here
@@ -127,10 +128,6 @@ fn main() {
         if delta > 1000 && monitor_enabled {
             println!("{:?}", &cpu.memory[0x00..0xA]);
             monitor_last = now;
-        }
-
-        if cpu.finished() {
-            cpu.reset();
         }
 
         // thread::sleep(Duration::from_millis(10));
