@@ -94,11 +94,11 @@ fn main() {
                 monitor_enabled = !monitor_enabled;
             }
 
-            if input.as_bytes().starts_with(b"set") {
+            if input.as_bytes().starts_with(b"memset") {
                 let parts: Vec<&str> = input.split(" ").collect();
                 if parts.len() < 3 {
-                    println!("ERR: Requires 2 arguments. Example: set 0x00 0x01 to store 0x01 in \
-                              0x00.");
+                    println!("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
+                              in 0x00.");
                 } else {
                     let dst = u8::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
                     let src = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
