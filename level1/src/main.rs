@@ -66,6 +66,9 @@ fn main() {
 
     let mut ship = ship::Ship::new(ship_texture);
 
+    let mut monitor_enabled = false;
+    let mut monitor_last = 0;
+
     'running: loop {
 
         cpu.step_n(4);
@@ -85,6 +88,10 @@ fn main() {
                 std::io::stdout().write(asm.as_bytes());
                 std::io::stdout().write(b"\nHAKKA> ");
                 std::io::stdout().flush();
+            }
+
+            if input == "monitor" {
+                monitor_enabled = !monitor_enabled;
             }
         }
 
@@ -113,7 +120,13 @@ fn main() {
                 ship.render(&mut renderer);
                 renderer.present();
             }
+        }
 
+        let now = sdl_context.timer().unwrap().ticks();
+        let delta = now - monitor_last;
+        if delta > 1000 && monitor_enabled {
+            println!("{:?}", &cpu.memory[0x00..0xA]);
+            monitor_last = now;
         }
 
         if cpu.finished() {
