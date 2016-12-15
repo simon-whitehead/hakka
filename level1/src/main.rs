@@ -79,7 +79,7 @@ fn main() {
                 std::io::stdout().write(b"\n");
                 std::io::stdout().write(b"-- Disassembly --\n");
 
-                let mut disassembler = Disassembler::new();
+                let mut disassembler = Disassembler::with_offset(0xC000);
                 let asm = disassembler.disassemble(&bytecode[..]);
 
                 std::io::stdout().write(asm.as_bytes());
