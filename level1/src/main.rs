@@ -10,7 +10,7 @@ use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
 
-use rs6502::{Assembler, Cpu};
+use rs6502::{Assembler, Cpu, Disassembler};
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -70,8 +70,21 @@ fn main() {
 
         cpu.step_n(4);
         if let Ok(input) = rx.try_recv() {
-            if input.trim() == "exit" {
+            let input = input.trim();
+            if input == "exit" {
                 break 'running;
+            }
+
+            if input == "list" {
+                std::io::stdout().write(b"\n");
+                std::io::stdout().write(b"-- Disassembly --\n");
+
+                let mut disassembler = Disassembler::new();
+                let asm = disassembler.disassemble(&bytecode[..]);
+
+                std::io::stdout().write(asm.as_bytes());
+                std::io::stdout().write(b"\nHAKKA> ");
+                std::io::stdout().flush();
             }
         }
 
