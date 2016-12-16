@@ -1,13 +1,13 @@
 extern crate rs6502;
 extern crate sdl2;
 
+mod input;
 mod ship;
 mod timer;
 
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::sync::mpsc::channel;
-use std::thread;
 use std::time::Duration;
 
 use rs6502::{Assembler, Cpu, Disassembler};
@@ -17,35 +17,16 @@ use sdl2::keyboard::Keycode;
 use sdl2::image::LoadTexture;
 use sdl2::Sdl;
 
-use ::timer::FrameTimer;
+const FPS: u32 = 1000 / 60;
 
 fn main() {
     let (tx, rx) = channel();
 
-    thread::spawn(move || {
-        loop {
-            std::io::stdout().write(b"HAKKA> ");
-            std::io::stdout().flush();
+    input::handle(tx);
 
-            let mut line = String::new();
-            let stdin = io::stdin();
-            stdin.lock().read_line(&mut line).expect("Could not read line");
-            tx.send(line).unwrap();
-        }
-    });
-
-    let mut cpu = Cpu::new();
     let mut assembler = Assembler::new();
     let bytecode = assembler.assemble_file("level.asm").unwrap();
-    cpu.load(&bytecode[..], None);
-    cpu.flags.interrupt_disabled = false;
-
-    cpu.memory[0x02] = 0x80;
-    cpu.memory[0x03] = 0x00;
-    cpu.memory[0x05] = 0x19;
-    cpu.memory[0x06] = 0x00;
-
-    let mut timer = FrameTimer::new(1000 / 240, 0, 0, 0);
+    let mut cpu = init_cpu(&bytecode);
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -66,6 +47,7 @@ fn main() {
 
     let mut ship = ship::Ship::new(ship_texture);
 
+    let mut last_fps = 0;
     let mut monitor_enabled = false;
     let mut monitor_last = 0;
 
@@ -126,17 +108,20 @@ fn main() {
             }
         }
 
-        if frame_cap(&sdl_context, &mut timer) {
-
+        let now = sdl_context.timer().unwrap().ticks();
+        let delta = now - last_fps;
+        if delta < FPS {
+            sdl_context.timer().unwrap().delay(FPS - delta);
+        } else {
             if !cpu.flags.interrupt_disabled {
                 // Render stuff here
                 renderer.clear();
                 ship.render(&mut renderer);
                 renderer.present();
+                last_fps = now;
             }
         }
 
-        let now = sdl_context.timer().unwrap().ticks();
         let delta = now - monitor_last;
         if delta > 1000 && monitor_enabled {
             for b in &cpu.memory[0x00..0xA] {
@@ -150,30 +135,15 @@ fn main() {
     }
 }
 
-fn frame_cap(sdl_context: &Sdl, timer: &mut FrameTimer) -> bool {
-    let now = sdl_context.timer().unwrap().ticks();
-    let delta = now - timer.prev;
-    let elapsed = delta as f64 / 1000.0;
+fn init_cpu(bytecode: &[u8]) -> Cpu {
+    let mut cpu = Cpu::new();
+    cpu.load(&bytecode[..], None);
+    cpu.flags.interrupt_disabled = false;
 
-    timer.ticks = now;
+    cpu.memory[0x02] = 0x80;
+    cpu.memory[0x03] = 0x00;
+    cpu.memory[0x05] = 0x19;
+    cpu.memory[0x06] = 0x00;
 
-    // Wait until 1/60th of a second has passed since we last called this
-    if delta < timer.interval {
-        sdl_context.timer().unwrap().delay(timer.interval - delta);
-        return false;
-    }
-
-    timer.prev = now;
-    timer.fps += 1;
-
-    timer.elapsed = elapsed;
-
-    if now - timer.last_second > 1000 {
-        // Store our current FPS
-        timer.last_fps = timer.fps;
-        timer.last_second = now;
-        timer.fps = 0;
-    }
-
-    true
+    cpu
 }
