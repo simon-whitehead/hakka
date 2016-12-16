@@ -16,7 +16,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::image::LoadTexture;
 use sdl2::Sdl;
 
-const FPS: u32 = 1000 / 60;
+const FPS_STEP: u32 = 1000 / 60;
 
 fn main() {
     let (tx, rx) = channel();
@@ -108,8 +108,8 @@ fn main() {
 
         let now = sdl_context.timer().unwrap().ticks();
         let delta = now - last_fps;
-        if delta < FPS {
-            sdl_context.timer().unwrap().delay(FPS - delta);
+        if delta < FPS_STEP {
+            sdl_context.timer().unwrap().delay(FPS_STEP - delta);
         } else {
             if !cpu.flags.interrupt_disabled {
                 // Render stuff here
