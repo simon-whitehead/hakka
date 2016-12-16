@@ -3,7 +3,6 @@ extern crate sdl2;
 
 mod input;
 mod ship;
-mod timer;
 
 use std::io::{self, BufRead, Write};
 use std::path::Path;
@@ -24,8 +23,7 @@ fn main() {
 
     input::handle(tx);
 
-    let mut assembler = Assembler::new();
-    let bytecode = assembler.assemble_file("level.asm").unwrap();
+    let bytecode = assemble("level.asm");
     let mut cpu = init_cpu(&bytecode);
 
     let sdl_context = sdl2::init().unwrap();
@@ -133,6 +131,13 @@ fn main() {
 
         // thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn assemble<P>(path: P) -> Vec<u8>
+    where P: AsRef<Path>
+{
+    let mut assembler = Assembler::new();
+    assembler.assemble_file("level.asm").unwrap()
 }
 
 fn init_cpu(bytecode: &[u8]) -> Cpu {
