@@ -61,7 +61,7 @@ impl VirtualMachine {
                 n += self.cpu.step().expect("SEGFAULT") as u32;
             }
         } else {
-            self.cpu.step().unwrap();
+            self.cpu.step().expect("SEGFAULT");
         }
     }
 
