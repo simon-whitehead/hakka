@@ -4,9 +4,7 @@ extern crate vm;
 
 mod ship;
 
-use std::io::{self, BufRead, Write};
 use std::path::Path;
-use std::sync::mpsc::channel;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -55,9 +53,9 @@ fn main() {
     let finish_banner_surface = finish_font.render("F I N I S H")
         .blended_wrapped(Color::RGBA(0, 0, 0, 255), 56)
         .unwrap();
-    let mut win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
+    let win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
         .unwrap();
-    let mut finish_banner_texture = renderer.create_texture_from_surface(&finish_banner_surface)
+    let finish_banner_texture = renderer.create_texture_from_surface(&finish_banner_surface)
         .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -93,8 +91,9 @@ fn main() {
         if ship.x > 1280 - 0xFF {
             renderer.clear();
             renderer.copy(&win_message_texture,
-                          None,
-                          Some(Rect::new(350, 128, win_width, win_height)));
+                      None,
+                      Some(Rect::new(350, 128, win_width, win_height)))
+                .unwrap();
             renderer.present();
         } else {
             vm.try_execute_command();
@@ -117,8 +116,9 @@ fn main() {
                     renderer.fill_rect(Rect::new(1160, 0, 120, 400)).unwrap();
                     renderer.set_draw_color(Color::RGB(0, 0, 0));
                     renderer.copy(&finish_banner_texture,
-                                  None,
-                                  Some(Rect::new(1200, 0, finish_width, finish_height)));
+                              None,
+                              Some(Rect::new(1200, 0, finish_width, finish_height)))
+                        .unwrap();
                     ship.render(&mut renderer);
                     renderer.present();
                     last_fps = now;

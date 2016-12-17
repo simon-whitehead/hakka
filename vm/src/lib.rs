@@ -4,7 +4,7 @@ use std::io::{self, BufRead, Write};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 
-use rs6502::{Assembler, Cpu, Disassembler};
+use rs6502::{Cpu, Disassembler};
 
 #[derive(Debug)]
 pub struct MemoryMonitor {
@@ -58,7 +58,7 @@ impl VirtualMachine {
         if let Some(clock_rate) = self.clock_rate {
             let mut n = 0;
             while n < clock_rate {
-                n += self.cpu.step().unwrap() as u32;
+                n += self.cpu.step().expect("SEGFAULT") as u32;
             }
         } else {
             self.cpu.step().unwrap();
@@ -95,17 +95,28 @@ impl VirtualMachine {
                     println!("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
                               in 0x00.");
                 } else if parts.len() == 3 {
-                    let dst = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
-                    let src = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
-
-                    self.cpu.memory[dst as usize] = src;
+                    if let Ok(dst) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+                        if let Ok(src) = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
+                            self.cpu.memory[dst as usize] = src;
+                        } else {
+                            println!("ERR: Unable to parse source byte value");
+                        }
+                    } else {
+                        println!("ERR: Unable to parse destination byte value");
+                    }
                 } else {
-                    let mut dst = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16)
-                        .unwrap();
-                    for p in &parts[2..] {
-                        let byte = u8::from_str_radix(&p.replace("0x", "")[..], 16).unwrap();
-                        self.cpu.memory[dst] = byte;
-                        dst += 0x01;
+                    if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..],
+                                                               16) {
+                        for p in &parts[2..] {
+                            if let Ok(byte) = u8::from_str_radix(&p.replace("0x", "")[..], 16) {
+                                self.cpu.memory[dst] = byte;
+                                dst += 0x01;
+                            } else {
+                                println!("ERR: Unable to parse source byte value");
+                            }
+                        }
+                    } else {
+                        println!("ERR: Unable to parse destination byte value");
                     }
                 }
             }
@@ -122,8 +133,8 @@ impl VirtualMachine {
 
             }
 
-            std::io::stdout().write(b"hakka> ");
-            std::io::stdout().flush();
+            std::io::stdout().write(b"hakka> ").unwrap();
+            std::io::stdout().flush().unwrap();
 
             // Don't assign a blank command as a last command
             if input.len() > 0 {
@@ -153,7 +164,7 @@ impl VirtualMachine {
         println!("");
         println!("-- Disassembly --");
 
-        let mut disassembler = Disassembler::with_offset(self.code_offset);
+        let disassembler = Disassembler::with_offset(self.code_offset);
         let asm = disassembler.disassemble(self.cpu.get_code());
         print!("{}", asm);
     }
