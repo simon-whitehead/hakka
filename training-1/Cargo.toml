@@ -5,7 +5,8 @@ authors = ["Simon Whitehead <chemnova@gmail.com>"]
 
 [dependencies]
 rs6502 = { path = "../../rs6502" }
+vm = { path = "../vm" }
 
 [dependencies.sdl2]
 version = "*"
-features = ["image"]
+features = ["image", "ttf"]

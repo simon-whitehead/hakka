@@ -18,11 +18,8 @@ MOV_1 = $06
 
 GameLoop
 
-SEI
 JSR RightArrow
 JSR LeftArrow
-JSR AdjustOffscreen
-CLI
 
 JMP GameLoop
 
@@ -32,13 +29,16 @@ LDA KEY
 CMP #39 ; Was the right arrow pressed?
 BNE RightArrowEnd
 
+; Subtract the movement speed from the X position
 CLC
+SEI
 LDA X_0
 ADC MOV_0
 STA X_0
 LDA X_1
 ADC MOV_1
 STA X_1
+CLI
 
 RightArrowEnd:
 RTS
@@ -50,25 +50,27 @@ CMP #37 ; Was the left arrow pressed?
 BNE LeftArrowEnd
 
 SEC
+SEI
 LDA X_0
 SBC MOV_0
 STA X_0
 LDA X_1
 SBC MOV_1
-STA X_1
 
-LeftArrowEnd:
-RTS
-
-AdjustOffscreen:
-LDA X_1
+; Did we just wrap around?
 CMP #$F0
-BCC EndAdjust
+BCS ClipLeft
+STA X_1
+JMP LeftArrowEnd
+
+; Don't let it wrap around
+ClipLeft:
 LDA #$00
 STA X_0
 STA X_1
 
-EndAdjust:
+LeftArrowEnd:
+CLI
 RTS
 
 END:

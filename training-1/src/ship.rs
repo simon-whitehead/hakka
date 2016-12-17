@@ -2,7 +2,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, Texture, TextureQuery};
 
 pub struct Ship {
-    x: i32,
+    pub x: i32,
     y: i32,
     width: u32,
     height: u32,
@@ -35,7 +35,8 @@ impl Ship {
 
     pub fn render(&self, renderer: &mut Renderer) {
         renderer.copy(&self.texture,
-                      None,
-                      Some(Rect::new(self.x, self.y, self.width, self.height)));
+                  None,
+                  Some(Rect::new(self.x, self.y, self.width, self.height)))
+            .unwrap();
     }
 }
