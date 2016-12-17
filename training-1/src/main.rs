@@ -7,7 +7,6 @@ mod ship;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::sync::mpsc::channel;
-use std::thread;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -43,13 +42,23 @@ fn main() {
 
     let ship_texture = renderer.load_texture(Path::new("ship.png")).unwrap();
 
-    let mut font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 128).unwrap();
-    font.set_style(sdl2::ttf::STYLE_BOLD);
+    let mut win_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 128).unwrap();
+    win_font.set_style(sdl2::ttf::STYLE_BOLD);
 
-    let surface = font.render("You win!")
+    let mut finish_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64)
+        .unwrap();
+    finish_font.set_style(sdl2::ttf::STYLE_BOLD);
+
+    let win_message_surface = win_font.render("You win!")
         .blended(Color::RGBA(0, 153, 192, 255))
         .unwrap();
-    let mut font_texture = renderer.create_texture_from_surface(&surface).unwrap();
+    let finish_banner_surface = finish_font.render("F I N I S H")
+        .blended_wrapped(Color::RGBA(0, 0, 0, 255), 56)
+        .unwrap();
+    let mut win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
+        .unwrap();
+    let mut finish_banner_texture = renderer.create_texture_from_surface(&finish_banner_surface)
+        .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
     let mut ship = ship::Ship::new(ship_texture);
@@ -79,9 +88,9 @@ fn main() {
         }
 
         if ship.x > 1280 - 0xFF {
-            let TextureQuery { width, height, .. } = font_texture.query();
+            let TextureQuery { width, height, .. } = win_message_texture.query();
             renderer.clear();
-            renderer.copy(&font_texture,
+            renderer.copy(&win_message_texture,
                           None,
                           Some(Rect::new(350, 128, width, height)));
             renderer.present();
@@ -101,7 +110,14 @@ fn main() {
             } else {
                 vm.cycle();
                 if !vm.cpu.flags.interrupt_disabled {
+                    let TextureQuery { width, height, .. } = finish_banner_texture.query();
                     renderer.clear();
+                    renderer.set_draw_color(Color::RGB(0, 144, 192));
+                    renderer.fill_rect(Rect::new(1160, 0, 120, 400)).unwrap();
+                    renderer.set_draw_color(Color::RGB(0, 0, 0));
+                    renderer.copy(&finish_banner_texture,
+                                  None,
+                                  Some(Rect::new(1200, 0, width, height)));
                     ship.render(&mut renderer);
                     renderer.present();
                     last_fps = now;
