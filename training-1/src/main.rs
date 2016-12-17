@@ -22,23 +22,10 @@ use vm::VirtualMachine;
 const FPS_STEP: u32 = 1000 / 60;
 
 fn main() {
-    let (tx, rx) = channel();
-
-    thread::spawn(move || {
-        std::io::stdout().write(b"hakka> ").unwrap();
-        std::io::stdout().flush().unwrap();
-
-        loop {
-            let mut line = String::new();
-            let stdin = io::stdin();
-            stdin.lock().read_line(&mut line).expect("Could not read line");
-            tx.send(line).unwrap();
-        }
-    });
 
     let bytecode = assemble("level.asm");
     let cpu = init_cpu(&bytecode);
-    let mut vm = VirtualMachine::new(cpu, 0xC000, 150, rx);
+    let mut vm = VirtualMachine::new(cpu, 0xC000, 150);
 
     let sdl_context = sdl2::init().unwrap();
     let ttf_context = sdl2::ttf::init().unwrap();
@@ -70,7 +57,6 @@ fn main() {
     let mut monitor_last = 0;
 
     'running: loop {
-
 
         for event in events.poll_iter() {
             match event {
