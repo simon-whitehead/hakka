@@ -155,7 +155,11 @@ impl VirtualMachine {
                 let parts: Vec<&str> = input.split(" ").collect();
                 if parts.len() == 2 {
                     if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
-                        self.breakpoints[addr] = 1;
+                        if self.breakpoints[addr] > 0 {
+                            self.breakpoints[addr] = 0;
+                        } else {
+                            self.breakpoints[addr] = 1;
+                        }
                     } else {
                         println!("Err: Unable to parse breakpoint address");
                     }
