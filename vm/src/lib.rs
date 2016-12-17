@@ -20,6 +20,8 @@ pub struct VirtualMachine {
     clock_rate: Option<u32>,
     receiver: Receiver<String>,
     last_command: String,
+    breakpoints: [u8; 64 * 1024],
+    broken: bool,
 }
 
 impl VirtualMachine {
@@ -51,17 +53,29 @@ impl VirtualMachine {
                 end_addr: 0,
             },
             last_command: "".into(),
+            breakpoints: [0; 64 * 1024],
+            broken: false,
         }
     }
 
     pub fn cycle(&mut self) {
         if let Some(clock_rate) = self.clock_rate {
             let mut n = 0;
-            while n < clock_rate {
+            while n < clock_rate && !self.broken {
                 n += self.cpu.step().expect("SEGFAULT") as u32;
+                if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
+                    self.broken = true;
+                    println!("");
+                    println!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC);
+                }
             }
         } else {
             self.cpu.step().expect("SEGFAULT");
+            if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
+                self.broken = true;
+                println!("");
+                println!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC);
+            }
         }
     }
 
@@ -134,7 +148,25 @@ impl VirtualMachine {
 
                     self.dump_memory_page(page_number);
                 }
+            }
 
+            if input.starts_with("break") {
+                // 1 argument assumes 1 memory "page"
+                let parts: Vec<&str> = input.split(" ").collect();
+                if parts.len() == 2 {
+                    if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
+                        self.breakpoints[addr] = 1;
+                    } else {
+                        println!("Err: Unable to parse breakpoint address");
+                    }
+                } else {
+                    println!("ERR: Requires 1 argument");
+                }
+            }
+
+            if input == "continue" {
+                self.broken = false;
+                println!("Execution resumed");
             }
 
             std::io::stdout().write(b"hakka> ").unwrap();
@@ -169,8 +201,9 @@ impl VirtualMachine {
         println!("-- Disassembly --");
 
         let disassembler = Disassembler::with_offset(self.code_offset);
-        let asm = disassembler.disassemble(self.cpu.get_code());
-        print!("{}", asm);
+        let pairs = disassembler.disassemble_with_addresses(self.cpu.get_code());
+        let result = self.highlight_lines(self.cpu.registers.PC as usize, pairs, false).join("");
+        print!("{}", result);
     }
 
     fn dump_local_disassembly(&self) {
@@ -179,22 +212,10 @@ impl VirtualMachine {
 
         let disassembler = Disassembler::with_offset(self.code_offset);
         let pc = self.cpu.registers.PC as usize;
-        let (bytes, current_line) = if pc <= self.code_offset as usize + 0x0B {
-            if pc + 0x0B >= self.cpu.memory.len() {
-                (&self.cpu.memory[pc..], 0)
-            } else {
-                (&self.cpu.memory[pc..pc + 0x0A], 0)
-            }
-        } else {
-            if pc + 0x0B >= self.cpu.memory.len() {
-                (&self.cpu.memory[pc - 0x0A..], 10)
-            } else {
-                (&self.cpu.memory[pc - 0x0A..pc + 0x0A], 10)
-            }
-        };
-        let asm = disassembler.disassemble(bytes);
-        let highlighted = self.highlight_line(&asm, current_line);
-        print!("{}", highlighted);
+        let code = self.cpu.get_code();
+        let pairs = disassembler.disassemble_with_addresses(code);
+        let result = self.highlight_lines(pc, pairs, true).join("");
+        print!("{}", result);
     }
 
     pub fn dump_memory_page(&self, page: usize) {
@@ -221,18 +242,34 @@ impl VirtualMachine {
         }
     }
 
-    fn highlight_line(&self, code: &str, line_number: usize) -> String {
+    fn highlight_lines(&self,
+                       pc: usize,
+                       pairs: Vec<(String, u16)>,
+                       limit_results: bool)
+                       -> Vec<String> {
         let mut result = Vec::new();
-        let mut line_counter = 0;
-        for line in code.lines() {
-            if line_counter == line_number {
-                result.push(format!("{} {}", "> ", line.clone()));
-            } else {
-                result.push(format!("{} {}", "  ", line.clone()));
+
+        let base = pc - self.code_offset as usize;
+
+        for pair in pairs {
+            if limit_results {
+                let start = if base > 0x0A { base - 0x0A } else { 0 };
+                if (pair.1 as usize) < start || (pair.1 as usize) > base + 0x0A {
+                    continue;
+                }
             }
-            line_counter += 0x01;
+            let breakpoint = self.breakpoints[self.code_offset as usize + pair.1 as usize] > 0x00;
+            let current_line = pc as u16 == self.code_offset + pair.1;
+
+            if breakpoint && current_line {
+                result.push(format!("> * {}", pair.0));
+            } else if breakpoint && !current_line {
+                result.push(format!("  * {}", pair.0));
+            } else {
+                result.push(format!("    {}", pair.0));
+            }
         }
 
-        result.join("\n")
+        result
     }
 }
