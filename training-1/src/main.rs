@@ -64,6 +64,9 @@ fn main() {
     let mut ship = ship::Ship::new(ship_texture);
     let mut last_fps = 0;
     let mut monitor_last = 0;
+    let TextureQuery { width: win_width, height: win_height, .. } = win_message_texture.query();
+    let TextureQuery { width: finish_width, height: finish_height, .. } =
+        finish_banner_texture.query();
 
     'running: loop {
 
@@ -88,11 +91,10 @@ fn main() {
         }
 
         if ship.x > 1280 - 0xFF {
-            let TextureQuery { width, height, .. } = win_message_texture.query();
             renderer.clear();
             renderer.copy(&win_message_texture,
                           None,
-                          Some(Rect::new(350, 128, width, height)));
+                          Some(Rect::new(350, 128, win_width, win_height)));
             renderer.present();
         } else {
             vm.try_execute_command();
@@ -110,20 +112,20 @@ fn main() {
             } else {
                 vm.cycle();
                 if !vm.cpu.flags.interrupt_disabled {
-                    let TextureQuery { width, height, .. } = finish_banner_texture.query();
                     renderer.clear();
                     renderer.set_draw_color(Color::RGB(0, 144, 192));
                     renderer.fill_rect(Rect::new(1160, 0, 120, 400)).unwrap();
                     renderer.set_draw_color(Color::RGB(0, 0, 0));
                     renderer.copy(&finish_banner_texture,
                                   None,
-                                  Some(Rect::new(1200, 0, width, height)));
+                                  Some(Rect::new(1200, 0, finish_width, finish_height)));
                     ship.render(&mut renderer);
                     renderer.present();
                     last_fps = now;
                 }
             }
 
+            // Dump the CPU memory at 1 second intervals if the monitor is enabled
             let delta = now - monitor_last;
             if delta > 1000 && vm.monitor.enabled {
                 vm.dump_memory();
