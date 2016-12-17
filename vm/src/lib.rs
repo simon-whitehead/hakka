@@ -77,8 +77,12 @@ impl VirtualMachine {
                 }
             }
 
-            if input == "list" {
+            if input == "source" {
                 self.dump_disassembly();
+            }
+
+            if input == "list" {
+                self.dump_local_disassembly();
             }
 
             if input.starts_with("monitor") {
@@ -169,6 +173,30 @@ impl VirtualMachine {
         print!("{}", asm);
     }
 
+    fn dump_local_disassembly(&self) {
+        println!("");
+        println!("-- Disassembly --");
+
+        let disassembler = Disassembler::with_offset(self.code_offset);
+        let pc = self.cpu.registers.PC as usize;
+        let (bytes, current_line) = if pc <= self.code_offset as usize + 0x0B {
+            if pc + 0x0B >= self.cpu.memory.len() {
+                (&self.cpu.memory[pc..], 0)
+            } else {
+                (&self.cpu.memory[pc..pc + 0x0A], 0)
+            }
+        } else {
+            if pc + 0x0B >= self.cpu.memory.len() {
+                (&self.cpu.memory[pc - 0x0A..], 10)
+            } else {
+                (&self.cpu.memory[pc - 0x0A..pc + 0x0A], 10)
+            }
+        };
+        let asm = disassembler.disassemble(bytes);
+        let highlighted = self.highlight_line(&asm, current_line);
+        print!("{}", highlighted);
+    }
+
     pub fn dump_memory_page(&self, page: usize) {
         let mut addr = page * 0x100;
         println!("-- Memory dump --");
@@ -191,5 +219,20 @@ impl VirtualMachine {
             }
             println!("");
         }
+    }
+
+    fn highlight_line(&self, code: &str, line_number: usize) -> String {
+        let mut result = Vec::new();
+        let mut line_counter = 0;
+        for line in code.lines() {
+            if line_counter == line_number {
+                result.push(format!("{} {}", "> ", line.clone()));
+            } else {
+                result.push(format!("{} {}", "  ", line.clone()));
+            }
+            line_counter += 0x01;
+        }
+
+        result.join("\n")
     }
 }
