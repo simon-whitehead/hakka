@@ -48,8 +48,8 @@ fn main() {
         .unwrap();
     finish_font.set_style(sdl2::ttf::STYLE_BOLD);
 
-    let win_message_surface = win_font.render("You win!")
-        .blended(Color::RGBA(0, 153, 192, 255))
+    let win_message_surface = win_font.render("PASSED")
+        .blended(Color::RGBA(0, 0, 0, 255))
         .unwrap();
     let finish_banner_surface = finish_font.render("FINISH")
         .blended_wrapped(Color::RGBA(0, 0, 0, 255), 56)
@@ -111,6 +111,14 @@ fn main() {
                 renderer.clear();
                 renderer.set_draw_color(Color::RGB(0, 144, 192));
                 renderer.fill_rect(Rect::new(0, 0, 400, 120)).unwrap();
+                if level_complete {
+                    renderer.set_draw_color(Color::RGB(0, 255, 0));
+                    renderer.fill_rect(Rect::new(0, 300, 400, 120)).unwrap();
+                    renderer.copy(&win_message_texture,
+                              None,
+                              Some(Rect::new(100, 330, win_width, win_height)))
+                        .unwrap();
+                }
                 renderer.set_draw_color(Color::RGB(0, 0, 0));
                 renderer.copy(&finish_banner_texture,
                           None,
@@ -122,10 +130,6 @@ fn main() {
                 ship.render(&mut renderer);
                 if ship.y <= 0x8C {
                     level_complete = true;
-                    renderer.copy(&win_message_texture,
-                              None,
-                              Some(Rect::new(75, 200, win_width, win_height)))
-                        .unwrap();
                 }
                 renderer.present();
                 last_fps = now;
