@@ -19,7 +19,7 @@ impl Ship {
 
         Ship {
             x: 0,
-            y: 300,
+            y: 1200,
             width: ship_width,
             height: ship_height,
             texture: texture,
