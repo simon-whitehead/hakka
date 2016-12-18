@@ -28,7 +28,7 @@ fn main() {
     let ttf_context = sdl2::ttf::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Hakka", 1280, 400)
+    let window = video_subsystem.window("Hakka", 400, 720)
         .position_centered()
         .build()
         .unwrap();
@@ -39,8 +39,9 @@ fn main() {
         .unwrap();
 
     let ship_texture = renderer.load_texture(Path::new("ship.png")).unwrap();
+    let ship_flame_texture = renderer.load_texture(Path::new("ship-flame.png")).unwrap();
 
-    let mut win_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 128).unwrap();
+    let mut win_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64).unwrap();
     win_font.set_style(sdl2::ttf::STYLE_BOLD);
 
     let mut finish_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64)
@@ -50,7 +51,7 @@ fn main() {
     let win_message_surface = win_font.render("You win!")
         .blended(Color::RGBA(0, 153, 192, 255))
         .unwrap();
-    let finish_banner_surface = finish_font.render("F I N I S H")
+    let finish_banner_surface = finish_font.render("FINISH")
         .blended_wrapped(Color::RGBA(0, 0, 0, 255), 56)
         .unwrap();
     let win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
@@ -59,7 +60,7 @@ fn main() {
         .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
-    let mut ship = ship::Ship::new(ship_texture);
+    let mut ship = ship::Ship::new(ship_texture, ship_flame_texture);
     let mut last_fps = 0;
     let mut monitor_last = 0;
     let TextureQuery { width: win_width, height: win_height, .. } = win_message_texture.query();
@@ -71,37 +72,38 @@ fn main() {
         for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
-                Event::KeyDown { keycode: Option::Some(Keycode::Right), .. } => {
-                    vm.cpu.memory[0x04] = 39
+                Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
+                    vm.cpu.memory[0x04] = 38;
                 }
-                Event::KeyDown { keycode: Option::Some(Keycode::Left), .. } => {
-                    vm.cpu.memory[0x04] = 37
+                Event::KeyDown { keycode: Option::Some(Keycode::Down), .. } => {
+                    vm.cpu.memory[0x04] = 40;
                 }
-                Event::KeyUp { keycode: Option::Some(Keycode::Right), .. } => {
-                    vm.cpu.memory[0x04] = 0
+                Event::KeyUp { keycode: Option::Some(Keycode::Up), .. } => {
+                    vm.cpu.memory[0x04] = 0;
                 }
-                Event::KeyUp { keycode: Option::Some(Keycode::Left), .. } => {
-                    vm.cpu.memory[0x04] = 0
+                Event::KeyUp { keycode: Option::Some(Keycode::Down), .. } => {
+                    vm.cpu.memory[0x04] = 0;
                 }
                 Event::KeyDown { keycode: Option::Some(Keycode::Escape), .. } => break 'running,
                 _ => (),
             }
         }
 
-        if ship.x > 1280 - 0xFF {
+        if ship.y < 0xA0 {
             renderer.clear();
             renderer.copy(&win_message_texture,
                       None,
-                      Some(Rect::new(350, 128, win_width, win_height)))
+                      Some(Rect::new(75, 200, win_width, win_height)))
                 .unwrap();
             renderer.present();
         } else {
             vm.try_execute_command();
             ship.process(&vm.cpu.memory[..]);
 
-            if ship.x >= 0x190 && ship.x <= 0x1AF && vm.cpu.memory[0x04] != 0 {
-                vm.cpu.memory[0x00] = 0x90;
-                vm.cpu.memory[0x01] = 0x01;
+            // Pull the ship back so it can't go past a certain spot
+            if ship.y <= 0x190 && vm.cpu.memory[0x04] != 0 {
+                vm.cpu.memory[0x02] = 0x90;
+                vm.cpu.memory[0x03] = 0x01;
             }
 
             let now = sdl_context.timer().unwrap().ticks();
@@ -113,12 +115,15 @@ fn main() {
                 if !vm.cpu.flags.interrupt_disabled {
                     renderer.clear();
                     renderer.set_draw_color(Color::RGB(0, 144, 192));
-                    renderer.fill_rect(Rect::new(1160, 0, 120, 400)).unwrap();
+                    renderer.fill_rect(Rect::new(0, 0, 400, 120)).unwrap();
                     renderer.set_draw_color(Color::RGB(0, 0, 0));
                     renderer.copy(&finish_banner_texture,
                               None,
-                              Some(Rect::new(1200, 0, finish_width, finish_height)))
+                              Some(Rect::new(100, 25, finish_width, finish_height)))
                         .unwrap();
+                    if vm.cpu.memory[0x07] > 0 {
+                        ship.render_flame(&mut renderer);
+                    }
                     ship.render(&mut renderer);
                     renderer.present();
                     last_fps = now;
@@ -147,8 +152,9 @@ fn init_cpu(bytecode: &[u8]) -> Cpu {
     cpu.load(&bytecode[..], None).unwrap();
     cpu.flags.interrupt_disabled = false;
 
-    cpu.memory[0x02] = 0x80;
-    cpu.memory[0x03] = 0x00;
+    cpu.memory[0x00] = 0x90;
+    cpu.memory[0x02] = 0xFF;
+    cpu.memory[0x03] = 0x01;
     cpu.memory[0x05] = 0x05;
     cpu.memory[0x06] = 0x00;
 

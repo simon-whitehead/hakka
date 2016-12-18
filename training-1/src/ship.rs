@@ -3,22 +3,29 @@ use sdl2::render::{Renderer, Texture, TextureQuery};
 
 pub struct Ship {
     pub x: i32,
-    y: i32,
+    pub y: i32,
     width: u32,
     height: u32,
+    flame_width: u32,
+    flame_height: u32,
     texture: Texture,
+    flame_texture: Texture,
 }
 
 impl Ship {
-    pub fn new(texture: Texture) -> Ship {
-        let TextureQuery { width, height, .. } = texture.query();
+    pub fn new(texture: Texture, flame_texture: Texture) -> Ship {
+        let TextureQuery { width: ship_width, height: ship_height, .. } = texture.query();
+        let TextureQuery { width: flame_width, height: flame_height, .. } = flame_texture.query();
 
         Ship {
             x: 0,
-            y: 0,
-            width: width,
-            height: height,
+            y: 300,
+            width: ship_width,
+            height: ship_height,
             texture: texture,
+            flame_width: flame_width,
+            flame_height: flame_height,
+            flame_texture: flame_texture,
         }
     }
 
@@ -37,6 +44,24 @@ impl Ship {
         renderer.copy(&self.texture,
                   None,
                   Some(Rect::new(self.x, self.y, self.width, self.height)))
+            .unwrap();
+    }
+
+    pub fn render_flame(&self, renderer: &mut Renderer) {
+        renderer.copy(&self.flame_texture,
+                  None,
+                  Some(Rect::new(self.x - 10,
+                                 self.y + 150,
+                                 self.flame_width,
+                                 self.flame_height)))
+            .unwrap();
+
+        renderer.copy(&self.flame_texture,
+                  None,
+                  Some(Rect::new(self.x + 77,
+                                 self.y + 150,
+                                 self.flame_width,
+                                 self.flame_height)))
             .unwrap();
     }
 }

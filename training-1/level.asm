@@ -18,59 +18,66 @@ MOV_1 = $06
 
 GameLoop
 
-JSR RightArrow
-JSR LeftArrow
+JSR UpArrow
+JSR DownArrow
+JSR Flame
 
 JMP GameLoop
 
-RightArrow:
+DownArrow:
 
 LDA KEY
-CMP #39 ; Was the right arrow pressed?
-BNE RightArrowEnd
+CMP #40 ; Was the down arrow pressed?
+BNE DownArrowEnd
 
-; Subtract the movement speed from the X position
+; Add the movement speed to the Y position
 CLC
 SEI
-LDA X_0
+LDA Y_0
 ADC MOV_0
-STA X_0
-LDA X_1
+STA Y_0
+LDA Y_1
 ADC MOV_1
-STA X_1
+STA Y_1
 CLI
 
-RightArrowEnd:
+DownArrowEnd:
 RTS
 
-LeftArrow:
+UpArrow:
 
 LDA KEY
-CMP #37 ; Was the left arrow pressed?
-BNE LeftArrowEnd
+CMP #38 ; Was the up arrow pressed?
+BNE UpArrowEnd
 
 SEC
 SEI
-LDA X_0
+LDA Y_0
 SBC MOV_0
-STA X_0
-LDA X_1
+STA Y_0
+LDA Y_1
 SBC MOV_1
+STA Y_1
 
-; Did we just wrap around?
-CMP #$F0
-BCS ClipLeft
-STA X_1
-JMP LeftArrowEnd
+; clamp the Y position so it can't be bigger than <figure it out>
 
-; Don't let it wrap around
-ClipLeft:
-LDA #$00
-STA X_0
-STA X_1
-
-LeftArrowEnd:
+UpArrowEnd:
 CLI
+RTS
+
+; Toggle the flame based on key state
+Flame:
+LDA KEY
+CMP #$00
+BEQ FlameOff
+LDA #$01
+STA $07
+JMP FlameEnd
+FlameOff:
+LDA #$00
+STA $07
+
+FlameEnd:
 RTS
 
 END:
