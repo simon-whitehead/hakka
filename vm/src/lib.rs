@@ -22,6 +22,7 @@ pub struct VirtualMachine {
     last_command: String,
     breakpoints: [u8; 64 * 1024],
     broken: bool,
+    step: bool,
 }
 
 impl VirtualMachine {
@@ -55,22 +56,25 @@ impl VirtualMachine {
             last_command: "".into(),
             breakpoints: [0; 64 * 1024],
             broken: false,
+            step: false,
         }
     }
 
     pub fn cycle(&mut self) {
         if let Some(clock_rate) = self.clock_rate {
             let mut n = 0;
-            while n < clock_rate && !self.broken {
+            while (n < clock_rate && !self.broken) || self.step {
                 n += self.cpu.step().expect("SEGFAULT") as u32;
                 if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
                     self.broken = true;
                     println!("");
                     println!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC);
                 }
+                self.step = false;
             }
         } else {
             self.cpu.step().expect("SEGFAULT");
+            self.step = false;
             if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
                 self.broken = true;
                 println!("");
@@ -173,6 +177,11 @@ impl VirtualMachine {
                 println!("Execution resumed");
             }
 
+            if input == "step" {
+                self.step = true;
+                self.dump_local_disassembly();
+            }
+
             std::io::stdout().write(b"hakka> ").unwrap();
             std::io::stdout().flush().unwrap();
 
@@ -262,13 +271,15 @@ impl VirtualMachine {
                     continue;
                 }
             }
-            let breakpoint = self.breakpoints[self.code_offset as usize + pair.1 as usize] > 0x00;
             let current_line = pc as u16 == self.code_offset + pair.1;
+            let breakpoint = self.breakpoints[self.code_offset as usize + pair.1 as usize] > 0x00;
 
             if breakpoint && current_line {
                 result.push(format!("> * {}", pair.0));
             } else if breakpoint && !current_line {
                 result.push(format!("  * {}", pair.0));
+            } else if !breakpoint && current_line {
+                result.push(format!(">   {}", pair.0));
             } else {
                 result.push(format!("    {}", pair.0));
             }
