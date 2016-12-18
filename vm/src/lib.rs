@@ -153,10 +153,23 @@ impl VirtualMachine {
                 // 1 argument assumes 1 memory "page"
                 let parts: Vec<&str> = input.split(" ").collect();
                 if parts.len() == 2 {
-                    let page_number: usize =
-                        parts[1].parse().expect("Unable to parse memory page number");
+                    if let Ok(page_number) = parts[1].parse() {
 
-                    self.dump_memory_page(page_number);
+                        self.dump_memory_page(page_number);
+                    } else {
+                        println!("ERR: Unable to parse memory page");
+                    }
+                } else if parts.len() == 3 {
+                    // A memory range instead
+                    if let Ok(start) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+                        if let Ok(end) = u16::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
+                            self.dump_memory_range(start, end);
+                        } else {
+                            println!("ERR: Unable to parse end address value");
+                        }
+                    } else {
+                        println!("ERR: Unable to parse start address value");
+                    }
                 }
             }
 
@@ -257,6 +270,18 @@ impl VirtualMachine {
         println!("-- Memory dump --");
         for chunk in self.cpu.memory[self.monitor.start_addr..self.monitor.end_addr + 0x01]
             .chunks(8) {
+            for b in chunk {
+                print!("{:02X} ", *b);
+            }
+            println!("");
+        }
+    }
+
+    fn dump_memory_range(&self, start: u16, end: u16) {
+        println!("-- Memory dump --");
+        let start = start as usize;
+        let end = end as usize;
+        for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
             for b in chunk {
                 print!("{:02X} ", *b);
             }
