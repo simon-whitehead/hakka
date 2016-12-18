@@ -70,10 +70,16 @@ impl VirtualMachine {
                     println!("");
                     println!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC);
                 }
+                if self.step {
+                    self.dump_local_disassembly();
+                }
                 self.step = false;
             }
         } else {
             self.cpu.step().expect("SEGFAULT");
+            if self.step {
+                self.dump_local_disassembly();
+            }
             self.step = false;
             if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
                 self.broken = true;
@@ -154,6 +160,10 @@ impl VirtualMachine {
                 }
             }
 
+            if input == "registers" {
+                self.dump_registers();
+            }
+
             if input.starts_with("break") {
                 // 1 argument assumes 1 memory "page"
                 let parts: Vec<&str> = input.split(" ").collect();
@@ -179,7 +189,6 @@ impl VirtualMachine {
 
             if input == "step" {
                 self.step = true;
-                self.dump_local_disassembly();
             }
 
             std::io::stdout().write(b"hakka> ").unwrap();
@@ -253,6 +262,19 @@ impl VirtualMachine {
             }
             println!("");
         }
+    }
+
+    fn dump_registers(&self) {
+        println!("-- Registers --");
+        println!("A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A);
+        println!("X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X);
+        println!("Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y);
+        println!("PC: {} ({:04X})",
+                 self.cpu.registers.PC,
+                 self.cpu.registers.PC);
+        println!("S: {} ({:04X})",
+                 self.cpu.stack.pointer,
+                 self.cpu.stack.pointer);
     }
 
     fn highlight_lines(&self,
