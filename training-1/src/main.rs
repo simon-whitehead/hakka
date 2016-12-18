@@ -60,6 +60,7 @@ fn main() {
         .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
+    let mut level_complete = false;
     let mut ship = ship::Ship::new(ship_texture, ship_flame_texture);
     let mut last_fps = 0;
     let mut monitor_last = 0;
@@ -89,53 +90,53 @@ fn main() {
             }
         }
 
-        if ship.y < 0xA0 {
-            renderer.clear();
-            renderer.copy(&win_message_texture,
-                      None,
-                      Some(Rect::new(75, 200, win_width, win_height)))
-                .unwrap();
-            renderer.present();
-        } else {
+        if !level_complete {
             vm.try_execute_command();
             ship.process(&vm.cpu.memory[..]);
 
             // Pull the ship back so it can't go past a certain spot
-            if ship.y <= 0x190 && vm.cpu.memory[0x04] != 0 {
+            if ship.y <= 0x190 && ship.y >= 0x100 && vm.cpu.memory[0x04] != 0 {
                 vm.cpu.memory[0x02] = 0x90;
                 vm.cpu.memory[0x03] = 0x01;
             }
+        }
 
-            let now = sdl_context.timer().unwrap().ticks();
-            let delta = now - last_fps;
-            if delta < FPS_STEP {
-                sdl_context.timer().unwrap().delay(FPS_STEP - delta);
-            } else {
-                vm.cycle();
-                if !vm.cpu.flags.interrupt_disabled {
-                    renderer.clear();
-                    renderer.set_draw_color(Color::RGB(0, 144, 192));
-                    renderer.fill_rect(Rect::new(0, 0, 400, 120)).unwrap();
-                    renderer.set_draw_color(Color::RGB(0, 0, 0));
-                    renderer.copy(&finish_banner_texture,
-                              None,
-                              Some(Rect::new(100, 25, finish_width, finish_height)))
-                        .unwrap();
-                    if vm.cpu.memory[0x07] > 0 {
-                        ship.render_flame(&mut renderer);
-                    }
-                    ship.render(&mut renderer);
-                    renderer.present();
-                    last_fps = now;
+        let now = sdl_context.timer().unwrap().ticks();
+        let delta = now - last_fps;
+        if delta < FPS_STEP {
+            sdl_context.timer().unwrap().delay(FPS_STEP - delta);
+        } else {
+            vm.cycle();
+            if !vm.cpu.flags.interrupt_disabled {
+                renderer.clear();
+                renderer.set_draw_color(Color::RGB(0, 144, 192));
+                renderer.fill_rect(Rect::new(0, 0, 400, 120)).unwrap();
+                renderer.set_draw_color(Color::RGB(0, 0, 0));
+                renderer.copy(&finish_banner_texture,
+                          None,
+                          Some(Rect::new(100, 25, finish_width, finish_height)))
+                    .unwrap();
+                if vm.cpu.memory[0x07] > 0 {
+                    ship.render_flame(&mut renderer);
                 }
+                ship.render(&mut renderer);
+                if ship.y <= 0x8C {
+                    level_complete = true;
+                    renderer.copy(&win_message_texture,
+                              None,
+                              Some(Rect::new(75, 200, win_width, win_height)))
+                        .unwrap();
+                }
+                renderer.present();
+                last_fps = now;
             }
+        }
 
-            // Dump the CPU memory at 1 second intervals if the monitor is enabled
-            let delta = now - monitor_last;
-            if delta > 1000 && vm.monitor.enabled {
-                vm.dump_memory();
-                monitor_last = now;
-            }
+        // Dump the CPU memory at 1 second intervals if the monitor is enabled
+        let delta = now - monitor_last;
+        if delta > 1000 && vm.monitor.enabled {
+            vm.dump_memory();
+            monitor_last = now;
         }
     }
 }
@@ -144,7 +145,7 @@ fn assemble<P>(path: P) -> Vec<u8>
     where P: AsRef<Path>
 {
     let mut assembler = Assembler::new();
-    assembler.assemble_file(path).unwrap()
+    assembler.assemble_file(path, 0xC000).unwrap()
 }
 
 fn init_cpu(bytecode: &[u8]) -> Cpu {
