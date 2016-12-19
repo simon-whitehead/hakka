@@ -45,4 +45,6 @@ else, please do open an Issue and lets discuss it!
 ## LICENSE
 MIT licensed. I hope you learn something from it.
 
+## Credits
 
+This game uses the [FantasqueSans font developed by GitHub user belluzj](https://github.com/belluzj/fantasque-sans).
