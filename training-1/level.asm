@@ -1,5 +1,5 @@
 
-; This code runs Level 1 of the game, HAKKA.
+; This code runs Training Level 1 of the game, hakka.
 
 ; 16-bit Ship X position
 X_0 = $00
