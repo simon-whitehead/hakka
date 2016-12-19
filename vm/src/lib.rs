@@ -226,8 +226,6 @@ impl VirtualMachine {
             self.monitor.start_addr = start;
             self.monitor.end_addr = end;
             self.monitor.enabled = true;
-
-            println!("{:?}", self.monitor);
         }
     }
 
