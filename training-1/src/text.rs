@@ -46,9 +46,9 @@ impl Text {
     }
 
     pub fn render(&self, renderer: &mut Renderer) {
-        // renderer.set_draw_color(self.color);
         renderer.copy(&self.texture,
-                      None,
-                      Some(Rect::new(self.x, self.y, self.width, self.height)));
+                  None,
+                  Some(Rect::new(self.x, self.y, self.width, self.height)))
+            .unwrap();
     }
 }

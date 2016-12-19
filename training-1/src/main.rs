@@ -12,7 +12,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::TextureQuery;
+use sdl2::render::Renderer;
 
 use rs6502::{Assembler, Cpu};
 use vm::VirtualMachine;
@@ -52,21 +52,21 @@ fn main() {
                                       Color::RGBA(0, 0, 0, 255),
                                       "FantasqueSansMono-Bold.ttf");
 
-    let mut win_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64).unwrap();
-    win_font.set_style(sdl2::ttf::STYLE_BOLD);
+    let win_text = text::Text::new(&ttf_context,
+                                   &mut renderer,
+                                   "PASSED",
+                                   100,
+                                   330,
+                                   64,
+                                   Color::RGBA(0, 0, 0, 255),
+                                   "FantasqueSansMono-Bold.ttf");
 
-    let win_message_surface = win_font.render("PASSED")
-        .blended(Color::RGBA(0, 0, 0, 255))
-        .unwrap();
-    let win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
-        .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
     let mut level_complete = false;
     let mut ship = ship::Ship::new(ship_texture, ship_flame_texture);
     let mut last_fps = 0;
     let mut monitor_last = 0;
-    let TextureQuery { width: win_width, height: win_height, .. } = win_message_texture.query();
 
     'running: loop {
 
@@ -109,16 +109,11 @@ fn main() {
             vm.cycle();
             if !vm.cpu.flags.interrupt_disabled {
                 renderer.clear();
-                renderer.set_draw_color(Color::RGB(0, 144, 192));
-                renderer.fill_rect(Rect::new(0, 0, WINDOW_WIDTH, 120)).unwrap();
                 if level_complete {
-                    renderer.set_draw_color(Color::RGB(0, 255, 0));
-                    renderer.fill_rect(Rect::new(0, 300, WINDOW_WIDTH, 120)).unwrap();
-                    renderer.copy(&win_message_texture,
-                              None,
-                              Some(Rect::new(100, 330, win_width, win_height)))
-                        .unwrap();
+                    draw_passed_background(&mut renderer);
+                    win_text.render(&mut renderer);
                 }
+                draw_finish_background(&mut renderer);
                 finish_text.render(&mut renderer);
                 if vm.cpu.memory[0x07] > 0 {
                     ship.render_flame(&mut renderer);
@@ -160,4 +155,17 @@ fn init_cpu(bytecode: &[u8]) -> Cpu {
     cpu.memory[0x06] = 0x00;
 
     cpu
+}
+
+fn draw_text_background(renderer: &mut Renderer, color: Color, y: i32) {
+    renderer.set_draw_color(color);
+    renderer.fill_rect(Rect::new(0, y, WINDOW_WIDTH, 120)).unwrap();
+}
+
+fn draw_finish_background(renderer: &mut Renderer) {
+    draw_text_background(renderer, Color::RGB(0, 144, 192), 0);
+}
+
+fn draw_passed_background(renderer: &mut Renderer) {
+    draw_text_background(renderer, Color::RGB(0, 255, 0), 300);
 }
