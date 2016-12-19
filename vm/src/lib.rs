@@ -6,6 +6,52 @@ use std::thread;
 
 use rs6502::{Cpu, Disassembler};
 
+const HELPTEXT: &'static str = "
+
+HAKKA
+-----
+
+Commands:
+
+break | b: addr
+       - Toggles a breakpoint at a specific address. If the
+         program counter hits this address, execution
+         stops. 
+        
+step | s
+       - Executes the current instruction before breaking
+         execution again.
+
+continue | c
+       - Resumes execution of code within the virtual machine.
+
+list
+       - Lists the code surrounding the current program
+         counter.
+
+memset | set: addr args [args, ...]
+       - memset sets the value of memory directly.
+
+memdmp | dmp: page || start end
+       - memdmp dumps a single memory page, or a specified
+         memory range from <start> to <end> (inclusive).
+
+monitor | mon: start end
+       - monitor dumps the memory between start and end (inclusive)
+         every second. Press ENTER to stop the monitor.
+
+source
+       - Lists the code currently running in the virtual
+         machine. A '>' symbol indicates the current 
+         program counter.
+
+registers | reg
+       - Lists the CPU registers and their current values.
+
+help
+       - Lists this help text.
+";
+
 #[derive(Debug)]
 pub struct MemoryMonitor {
     pub enabled: bool,
@@ -32,14 +78,21 @@ impl VirtualMachine {
         let (tx, rx) = channel();
 
         thread::spawn(move || {
+            println!("Welcome to hakka. Type 'help' to get started.");
+            println!("");
+
             std::io::stdout().write(b"hakka> ").unwrap();
             std::io::stdout().flush().unwrap();
 
             loop {
                 let mut line = String::new();
                 let stdin = io::stdin();
-                stdin.lock().read_line(&mut line).expect("Could not read line");
-                tx.send(line).unwrap();
+                let mut lock = stdin.lock();
+                if let Ok(_) = lock.read_line(&mut line) {
+                    tx.send(line).unwrap();
+                } else {
+                    break;
+                }
             }
         });
 
@@ -60,6 +113,7 @@ impl VirtualMachine {
         }
     }
 
+    /// Cycles the Virtual Machine CPU according to the clock rate
     pub fn cycle(&mut self) {
         if let Some(clock_rate) = self.clock_rate {
             let mut n = 0;
@@ -70,6 +124,7 @@ impl VirtualMachine {
                     println!("");
                     println!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC);
                 }
+                // If we stepped, dump the local disassembly
                 if self.step {
                     self.dump_local_disassembly();
                 }
@@ -96,20 +151,28 @@ impl VirtualMachine {
             if input.len() == 0 {
                 if self.monitor.enabled {
                     self.monitor.enabled = false;
-                } else {
-                    input = self.last_command.clone();
                 }
             }
 
-            if input == "source" {
+            if input == "r" || input == "repeat" {
+                input = self.last_command.clone();
+            }
+
+            let parts = input.split(" ").collect::<Vec<_>>();
+
+            if parts[0] == "help" {
+                print!("{}", HELPTEXT);
+            }
+
+            if parts[0] == "source" {
                 self.dump_disassembly();
             }
 
-            if input == "list" {
+            if parts[0] == "list" {
                 self.dump_local_disassembly();
             }
 
-            if input.starts_with("monitor") {
+            if parts[0] == "monitor" || parts[0] == "mon" {
                 if self.monitor.enabled {
                     self.monitor.enabled = false;
                 } else {
@@ -117,8 +180,7 @@ impl VirtualMachine {
                 }
             }
 
-            if input.starts_with("memset") {
-                let parts: Vec<&str> = input.split(" ").collect();
+            if parts[0] == "memset" || parts[0] == "set" {
                 if parts.len() < 3 {
                     println!("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
                               in 0x00.");
@@ -149,9 +211,8 @@ impl VirtualMachine {
                 }
             }
 
-            if input.starts_with("memdmp") {
+            if parts[0] == "memdmp" || parts[0] == "dmp" {
                 // 1 argument assumes 1 memory "page"
-                let parts: Vec<&str> = input.split(" ").collect();
                 if parts.len() == 2 {
                     if let Ok(page_number) = parts[1].parse() {
 
@@ -173,34 +234,37 @@ impl VirtualMachine {
                 }
             }
 
-            if input == "registers" {
+            if parts[0] == "registers" || parts[0] == "reg" {
                 self.dump_registers();
             }
 
-            if input.starts_with("break") {
+            if parts[0] == "break" || parts[0] == "b" {
                 // 1 argument assumes 1 memory "page"
-                let parts: Vec<&str> = input.split(" ").collect();
                 if parts.len() == 2 {
                     if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
-                        if self.breakpoints[addr] > 0 {
-                            self.breakpoints[addr] = 0;
+                        if addr <= u16::max_value() as usize {
+                            if self.breakpoints[addr] > 0 {
+                                self.breakpoints[addr] = 0;
+                            } else {
+                                self.breakpoints[addr] = 1;
+                            }
                         } else {
-                            self.breakpoints[addr] = 1;
+                            println!("ERR: Value outside addressable range.");
                         }
                     } else {
-                        println!("Err: Unable to parse breakpoint address");
+                        println!("ERR: Unable to parse breakpoint address");
                     }
                 } else {
                     println!("ERR: Requires 1 argument");
                 }
             }
 
-            if input == "continue" {
+            if parts[0] == "continue" || parts[0] == "c" {
                 self.broken = false;
                 println!("Execution resumed");
             }
 
-            if input == "step" {
+            if parts[0] == "step" || parts[0] == "s" {
                 self.step = true;
             }
 
