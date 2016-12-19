@@ -47,4 +47,6 @@ MIT licensed. I hope you learn something from it.
 
 ## Credits
 
-This game uses the [FantasqueSans font developed by GitHub user belluzj](https://github.com/belluzj/fantasque-sans).
+The spaceship sprite was created by [MillionthVector and is hosted for free on his/her website](http://millionthvector.blogspot.com.au/p/free-sprites.html). Check it out!
+
+The font is the [FantasqueSansMono font developed by GitHub user belluzj](https://github.com/belluzj/fantasque-sans).
