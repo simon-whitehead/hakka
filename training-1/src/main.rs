@@ -17,6 +17,8 @@ use rs6502::{Assembler, Cpu};
 use vm::VirtualMachine;
 
 const FPS_STEP: u32 = 1000 / 60;
+const WINDOW_WIDTH: u32 = 400;
+const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
 
@@ -28,7 +30,7 @@ fn main() {
     let ttf_context = sdl2::ttf::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Hakka", 400, 720)
+    let window = video_subsystem.window("Hakka", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
         .build()
         .unwrap();
@@ -110,10 +112,10 @@ fn main() {
             if !vm.cpu.flags.interrupt_disabled {
                 renderer.clear();
                 renderer.set_draw_color(Color::RGB(0, 144, 192));
-                renderer.fill_rect(Rect::new(0, 0, 400, 120)).unwrap();
+                renderer.fill_rect(Rect::new(0, 0, WINDOW_WIDTH, 120)).unwrap();
                 if level_complete {
                     renderer.set_draw_color(Color::RGB(0, 255, 0));
-                    renderer.fill_rect(Rect::new(0, 300, 400, 120)).unwrap();
+                    renderer.fill_rect(Rect::new(0, 300, WINDOW_WIDTH, 120)).unwrap();
                     renderer.copy(&win_message_texture,
                               None,
                               Some(Rect::new(100, 330, win_width, win_height)))
