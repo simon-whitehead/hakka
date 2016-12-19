@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Simon Whitehead <chemnova@gmail.com>"]
 
 [dependencies]
-rs6502 = { path = "../../rs6502" }
+rs6502 = "0.1.0"
