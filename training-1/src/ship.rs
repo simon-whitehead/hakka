@@ -1,3 +1,4 @@
+use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Renderer, Texture, TextureQuery};
 
@@ -41,6 +42,7 @@ impl Ship {
     }
 
     pub fn render(&self, renderer: &mut Renderer) {
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         renderer.copy(&self.texture,
                   None,
                   Some(Rect::new(self.x, self.y, self.width, self.height)))

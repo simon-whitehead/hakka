@@ -3,6 +3,7 @@ extern crate sdl2;
 extern crate vm;
 
 mod ship;
+mod text;
 
 use std::path::Path;
 
@@ -42,23 +43,22 @@ fn main() {
 
     let ship_texture = renderer.load_texture(Path::new("ship.png")).unwrap();
     let ship_flame_texture = renderer.load_texture(Path::new("ship-flame.png")).unwrap();
+    let finish_text = text::Text::new(&ttf_context,
+                                      &mut renderer,
+                                      "FINISH",
+                                      100,
+                                      25,
+                                      56,
+                                      Color::RGBA(0, 0, 0, 255),
+                                      "FantasqueSansMono-Bold.ttf");
 
     let mut win_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64).unwrap();
     win_font.set_style(sdl2::ttf::STYLE_BOLD);
 
-    let mut finish_font = ttf_context.load_font(Path::new("FantasqueSansMono-Bold.ttf"), 64)
-        .unwrap();
-    finish_font.set_style(sdl2::ttf::STYLE_BOLD);
-
     let win_message_surface = win_font.render("PASSED")
         .blended(Color::RGBA(0, 0, 0, 255))
         .unwrap();
-    let finish_banner_surface = finish_font.render("FINISH")
-        .blended_wrapped(Color::RGBA(0, 0, 0, 255), 56)
-        .unwrap();
     let win_message_texture = renderer.create_texture_from_surface(&win_message_surface)
-        .unwrap();
-    let finish_banner_texture = renderer.create_texture_from_surface(&finish_banner_surface)
         .unwrap();
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -67,8 +67,6 @@ fn main() {
     let mut last_fps = 0;
     let mut monitor_last = 0;
     let TextureQuery { width: win_width, height: win_height, .. } = win_message_texture.query();
-    let TextureQuery { width: finish_width, height: finish_height, .. } =
-        finish_banner_texture.query();
 
     'running: loop {
 
@@ -121,11 +119,7 @@ fn main() {
                               Some(Rect::new(100, 330, win_width, win_height)))
                         .unwrap();
                 }
-                renderer.set_draw_color(Color::RGB(0, 0, 0));
-                renderer.copy(&finish_banner_texture,
-                          None,
-                          Some(Rect::new(100, 25, finish_width, finish_height)))
-                    .unwrap();
+                finish_text.render(&mut renderer);
                 if vm.cpu.memory[0x07] > 0 {
                     ship.render_flame(&mut renderer);
                 }
