@@ -14,7 +14,7 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Renderer;
 
-use rs6502::{Assembler, Cpu};
+use rs6502::{Assembler, CodeSegment, Cpu};
 use vm::VirtualMachine;
 
 const FPS_STEP: u32 = 1000 / 60;
@@ -23,8 +23,8 @@ const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
 
-    let bytecode = assemble("level.asm");
-    let cpu = init_cpu(&bytecode);
+    let segments = assemble("level.asm");
+    let cpu = init_cpu(&segments);
     let mut vm = VirtualMachine::new(cpu, 0xC000, 150);
 
     let sdl_context = sdl2::init().unwrap();
@@ -136,16 +136,18 @@ fn main() {
     }
 }
 
-fn assemble<P>(path: P) -> Vec<u8>
+fn assemble<P>(path: P) -> Vec<CodeSegment>
     where P: AsRef<Path>
 {
     let mut assembler = Assembler::new();
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu(bytecode: &[u8]) -> Cpu {
+fn init_cpu(segments: &[CodeSegment]) -> Cpu {
     let mut cpu = Cpu::new();
-    cpu.load(&bytecode[..], None).unwrap();
+    for segment in segments {
+        cpu.load(&segment.code[..], segment.address).unwrap();
+    }
     cpu.flags.interrupt_disabled = false;
 
     cpu.memory[0x00] = 0x90;
