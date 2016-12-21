@@ -51,6 +51,9 @@ impl<'a> Console<'a> {
         match event {
             &Event::TextInput { ref text, .. } => {
                 if self.visible {
+                    if text == "`" {
+                        return;
+                    }
                     self.add_text(text);
                 }
             }
@@ -94,6 +97,7 @@ impl<'a> Console<'a> {
     pub fn commit(&mut self) {
         self.buffer.push(self.input_buffer.clone());
         self.input_buffer.clear();
+        self.cursor_position = 0;
     }
 
     pub fn cursor_left(&mut self) {
@@ -125,6 +129,14 @@ impl<'a> Console<'a> {
             self.texture.set_blend_mode(BlendMode::Blend);
             renderer.copy(&self.texture, None, Some(Rect::new(0, 0, 640, 720))).unwrap();
 
+            let leader = Text::new(&self.ttf_context,
+                                   &mut renderer,
+                                   "hakka>",
+                                   Position::XY(0, 720 - 18),
+                                   18,
+                                   Color::RGBA(255, 255, 255, 255),
+                                   "../assets/FantasqueSansMono-Bold.ttf");
+            leader.render(&mut renderer);
             let mut output_text = self.input_buffer.clone();
             if self.cursor_position < output_text.len() {
                 output_text.insert(self.cursor_position, '|');
@@ -135,7 +147,7 @@ impl<'a> Console<'a> {
                 let text = Text::new(&self.ttf_context,
                                      &mut renderer,
                                      &output_text[..],
-                                     Position::XY(0, 720 - 18),
+                                     Position::XY(60, 720 - 18),
                                      18,
                                      Color::RGBA(255, 255, 255, 255),
                                      "../assets/FantasqueSansMono-Bold.ttf");
