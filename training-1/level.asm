@@ -45,6 +45,8 @@ CLI
 DownArrowEnd:
 RTS
 
+.ORG $6000
+
 UpArrow:
 
 LDA KEY

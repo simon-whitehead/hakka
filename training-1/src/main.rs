@@ -23,9 +23,10 @@ const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
 
+    let cpu = init_cpu();
     let segments = assemble("level.asm");
-    let cpu = init_cpu(&segments);
-    let mut vm = VirtualMachine::new(cpu, 0xC000, 150);
+    let mut vm = VirtualMachine::new(cpu, 150);
+    vm.load_code_segments(segments);
 
     let sdl_context = sdl2::init().unwrap();
     let ttf_context = sdl2::ttf::init().unwrap();
@@ -143,11 +144,8 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu(segments: &[CodeSegment]) -> Cpu {
+fn init_cpu() -> Cpu {
     let mut cpu = Cpu::new();
-    for segment in segments {
-        cpu.load(&segment.code[..], segment.address).unwrap();
-    }
     cpu.flags.interrupt_disabled = false;
 
     cpu.memory[0x00] = 0x90;
