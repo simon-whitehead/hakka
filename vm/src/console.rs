@@ -137,6 +137,14 @@ impl<'a> Console<'a> {
         }
     }
 
+    pub fn print<S>(&mut self, text: S)
+        where S: Into<String>
+    {
+        for line in text.into().lines() {
+            self.println(line);
+        }
+    }
+
     pub fn println<S>(&mut self, text: S)
         where S: Into<String>
     {
