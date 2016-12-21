@@ -11,6 +11,7 @@ use text::Text;
 pub struct Console<'a> {
     pub visible: bool,
 
+    leader: Text,
     input_buffer: String,
     cursor_position: usize,
     buffer: Vec<String>,
@@ -20,7 +21,7 @@ pub struct Console<'a> {
 
 impl<'a> Console<'a> {
     /// Creates a new empty Console
-    pub fn new(ttf_context: &'a Sdl2TtfContext, renderer: &mut Renderer) -> Console<'a> {
+    pub fn new(ttf_context: &'a Sdl2TtfContext, mut renderer: &mut Renderer) -> Console<'a> {
         let mut texture = renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, 640, 720)
             .unwrap();
         // Create a red-green gradient
@@ -39,6 +40,13 @@ impl<'a> Console<'a> {
 
         Console {
             visible: false,
+            leader: Text::new(&ttf_context,
+                              &mut renderer,
+                              "hakka>",
+                              Position::XY(0, 720 - 18),
+                              18,
+                              Color::RGBA(255, 255, 255, 255),
+                              "../assets/FantasqueSansMono-Bold.ttf"),
             input_buffer: "".into(),
             cursor_position: 0,
             buffer: Vec::new(),
@@ -128,31 +136,33 @@ impl<'a> Console<'a> {
             renderer.set_blend_mode(BlendMode::Blend);
             self.texture.set_blend_mode(BlendMode::Blend);
             renderer.copy(&self.texture, None, Some(Rect::new(0, 0, 640, 720))).unwrap();
+            self.render_leader(&mut renderer);
 
-            let leader = Text::new(&self.ttf_context,
-                                   &mut renderer,
-                                   "hakka>",
-                                   Position::XY(0, 720 - 18),
-                                   18,
-                                   Color::RGBA(255, 255, 255, 255),
-                                   "../assets/FantasqueSansMono-Bold.ttf");
-            leader.render(&mut renderer);
+            // Insert the cursor in its proper position
             let mut output_text = self.input_buffer.clone();
             if self.cursor_position < output_text.len() {
                 output_text.insert(self.cursor_position, '|');
             } else {
                 output_text.push_str("|");
             }
-            if self.input_buffer.len() > 0 {
-                let text = Text::new(&self.ttf_context,
-                                     &mut renderer,
-                                     &output_text[..],
-                                     Position::XY(60, 720 - 18),
-                                     18,
-                                     Color::RGBA(255, 255, 255, 255),
-                                     "../assets/FantasqueSansMono-Bold.ttf");
-                text.render(&mut renderer);
+
+            // Only draw the text if we're > 0 characters
+            if self.input_buffer.len() == 0 {
+                output_text = "|".into();
             }
+
+            let text = Text::new(&self.ttf_context,
+                                 &mut renderer,
+                                 &output_text[..],
+                                 Position::XY(60, 720 - 18),
+                                 18,
+                                 Color::RGBA(255, 255, 255, 255),
+                                 "../assets/FantasqueSansMono-Bold.ttf");
+            text.render(&mut renderer);
         }
+    }
+
+    fn render_leader(&self, mut renderer: &mut Renderer) {
+        self.leader.render(&mut renderer);
     }
 }
