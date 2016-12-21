@@ -329,7 +329,6 @@ impl VirtualMachine {
 
         let pc = self.cpu.registers.PC as usize;
         let local_segment = self.get_local_segment(pc);
-        println!("Found local segment at: {:04X}", local_segment.address);
         let disassembler = Disassembler::with_offset(local_segment.address);
         let pairs = disassembler.disassemble_with_addresses(&local_segment.code);
         let result = self.highlight_lines(pc, pairs, local_segment.address, true).join("");
