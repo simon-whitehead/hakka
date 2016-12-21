@@ -1,6 +1,5 @@
 
 ; This code runs Training Level 1 of the game, hakka.
-.ORG $5000
 
 ; 16-bit Ship X position
 X_0 = $00
@@ -44,8 +43,6 @@ CLI
 
 DownArrowEnd:
 RTS
-
-.ORG $6000
 
 UpArrow:
 
