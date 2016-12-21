@@ -12,6 +12,7 @@ pub struct Console<'a> {
     pub visible: bool,
 
     input_buffer: String,
+    cursor_position: usize,
     buffer: Vec<String>,
     texture: Texture,
     ttf_context: &'a Sdl2TtfContext,
@@ -39,6 +40,7 @@ impl<'a> Console<'a> {
         Console {
             visible: false,
             input_buffer: "".into(),
+            cursor_position: 0,
             buffer: Vec::new(),
             texture: texture,
             ttf_context: ttf_context,
@@ -48,16 +50,32 @@ impl<'a> Console<'a> {
     pub fn process(&mut self, event: &Event) {
         match event {
             &Event::TextInput { ref text, .. } => {
-                self.add_text(text);
+                if self.visible {
+                    self.add_text(text);
+                }
             }
             &Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
                 self.toggle();
             }
+            &Event::KeyUp { keycode: Option::Some(Keycode::Left), .. } => {
+                if self.visible {
+                    self.cursor_left();
+                }
+            }
+            &Event::KeyUp { keycode: Option::Some(Keycode::Right), .. } => {
+                if self.visible {
+                    self.cursor_right();
+                }
+            }
             &Event::KeyUp { keycode: Option::Some(Keycode::Return), .. } => {
-                self.commit();
+                if self.visible {
+                    self.commit();
+                }
             }
             &Event::KeyDown { keycode: Option::Some(Keycode::Backspace), .. } => {
-                self.backspace();
+                if self.visible {
+                    self.backspace();
+                }
             }
             _ => (),
         }
@@ -69,21 +87,33 @@ impl<'a> Console<'a> {
     }
 
     pub fn add_text(&mut self, input: &str) {
-        if self.visible {
-            self.input_buffer.push_str(&input);
-        }
+        self.input_buffer.insert(self.cursor_position, input.chars().next().unwrap());
+        self.cursor_position += 1;
     }
 
     pub fn commit(&mut self) {
-        if self.visible {
-            self.buffer.push(self.input_buffer.clone());
-            self.input_buffer.clear();
+        self.buffer.push(self.input_buffer.clone());
+        self.input_buffer.clear();
+    }
+
+    pub fn cursor_left(&mut self) {
+        if self.cursor_position > 0 {
+            self.cursor_position -= 1;
+        }
+    }
+
+    pub fn cursor_right(&mut self) {
+        if self.cursor_position < self.input_buffer.len() {
+            self.cursor_position += 1;
         }
     }
 
     pub fn backspace(&mut self) {
         if self.visible {
-            self.input_buffer.pop();
+            self.input_buffer.remove(self.cursor_position - 1);
+            if self.cursor_position > 0 {
+                self.cursor_position -= 1;
+            }
         }
     }
 
@@ -95,10 +125,16 @@ impl<'a> Console<'a> {
             self.texture.set_blend_mode(BlendMode::Blend);
             renderer.copy(&self.texture, None, Some(Rect::new(0, 0, 640, 720))).unwrap();
 
+            let mut output_text = self.input_buffer.clone();
+            if self.cursor_position < output_text.len() {
+                output_text.insert(self.cursor_position, '|');
+            } else {
+                output_text.push_str("|");
+            }
             if self.input_buffer.len() > 0 {
                 let text = Text::new(&self.ttf_context,
                                      &mut renderer,
-                                     format!("{}|", &self.input_buffer[..]),
+                                     &output_text[..],
                                      Position::XY(0, 720 - 18),
                                      18,
                                      Color::RGBA(255, 255, 255, 255),
