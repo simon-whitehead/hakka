@@ -267,7 +267,8 @@ impl VirtualMachine {
                         println!("ERR: Unable to parse breakpoint address");
                     }
                 } else {
-                    println!("ERR: Requires 1 argument");
+                    self.broken = true;
+                    println!("Execution stopped");
                 }
             }
 
@@ -277,6 +278,7 @@ impl VirtualMachine {
             }
 
             if parts[0] == "step" || parts[0] == "s" {
+                self.broken = true;
                 self.step = true;
             }
 
