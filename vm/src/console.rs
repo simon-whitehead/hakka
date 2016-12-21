@@ -1,3 +1,4 @@
+use std;
 use std::path::Path;
 
 use sdl2::event::Event;
@@ -137,6 +138,16 @@ impl<'a> Console<'a> {
         }
     }
 
+    pub fn process_command(&mut self) {
+        let command = self.input_buffer.clone();
+
+        if command == "exit" {
+            std::process::exit(0);
+        } else {
+            self.println("Unknown command");
+        }
+    }
+
     pub fn print<S>(&mut self, text: S)
         where S: Into<String>
     {
@@ -163,6 +174,7 @@ impl<'a> Console<'a> {
 
     pub fn commit(&mut self) {
         self.buffer.push(format!("hakka> {}", self.input_buffer.clone()));
+        self.process_command();
         self.input_buffer.clear();
         self.cursor_position = 0;
     }
