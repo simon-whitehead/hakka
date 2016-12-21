@@ -2,7 +2,7 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Renderer, Texture, TextureQuery};
 
-use position::Position;
+use vm::Position;
 
 pub struct Ship {
     pub x: i32,

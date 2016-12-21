@@ -2,9 +2,7 @@ extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
 
-mod position;
 mod ship;
-mod text;
 
 use std::path::Path;
 
@@ -16,8 +14,7 @@ use sdl2::rect::Rect;
 use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use position::Position;
-use vm::VirtualMachine;
+use vm::{Console, Position, Text, VirtualMachine};
 
 const FPS_STEP: u32 = 1000 / 60;
 const WINDOW_WIDTH: u32 = 1280;
@@ -44,23 +41,24 @@ fn main() {
         .build()
         .unwrap();
 
-    let ship_texture = renderer.load_texture(Path::new("ship.png")).unwrap();
-    let ship_flame_texture = renderer.load_texture(Path::new("ship-flame.png")).unwrap();
-    let finish_text = text::Text::new(&ttf_context,
-                                      &mut renderer,
-                                      "FINISH",
-                                      Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 25),
-                                      56,
-                                      Color::RGBA(0, 0, 0, 255),
-                                      "FantasqueSansMono-Bold.ttf");
+    let ship_texture = renderer.load_texture(Path::new("../assets/ship.png")).unwrap();
+    let ship_flame_texture = renderer.load_texture(Path::new("../assets/ship-flame.png"))
+        .unwrap();
+    let finish_text = Text::new(&ttf_context,
+                                &mut renderer,
+                                "FINISH",
+                                Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 25),
+                                56,
+                                Color::RGBA(0, 0, 0, 255),
+                                "../assets/FantasqueSansMono-Bold.ttf");
 
-    let win_text = text::Text::new(&ttf_context,
-                                   &mut renderer,
-                                   "PASSED",
-                                   Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 330),
-                                   64,
-                                   Color::RGBA(0, 0, 0, 255),
-                                   "FantasqueSansMono-Bold.ttf");
+    let win_text = Text::new(&ttf_context,
+                             &mut renderer,
+                             "PASSED",
+                             Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 330),
+                             64,
+                             Color::RGBA(0, 0, 0, 255),
+                             "../assets/FantasqueSansMono-Bold.ttf");
 
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -71,9 +69,12 @@ fn main() {
     let mut last_fps = 0;
     let mut monitor_last = 0;
 
+    let mut console = Console::new(&ttf_context, &mut renderer);
+
     'running: loop {
 
         for event in events.poll_iter() {
+            console.process(&event);
             match event {
                 Event::Quit { .. } => break 'running,
                 Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
@@ -125,6 +126,7 @@ fn main() {
                 if ship.y <= 0x8C {
                     level_complete = true;
                 }
+                console.render(&mut renderer);
                 renderer.present();
                 last_fps = now;
             }

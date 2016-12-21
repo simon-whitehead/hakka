@@ -1,10 +1,19 @@
 extern crate rs6502;
+extern crate sdl2;
+
+mod console;
+mod position;
+mod text;
 
 use std::io::{self, BufRead, Write};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 
 use rs6502::{CodeSegment, Cpu, Disassembler};
+
+pub use self::console::Console;
+pub use self::position::Position;
+pub use self::text::Text;
 
 const HELPTEXT: &'static str = "
 
