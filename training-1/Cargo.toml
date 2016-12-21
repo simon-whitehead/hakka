@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Simon Whitehead <chemnova@gmail.com>"]
 
 [dependencies]
-rs6502 = "0.1.0"
+rs6502 = "0.2.0"
 vm = { path = "../vm" }
 
 [dependencies.sdl2]

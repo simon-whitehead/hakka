@@ -4,7 +4,7 @@ use std::io::{self, BufRead, Write};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 
-use rs6502::{Cpu, Disassembler};
+use rs6502::{CodeSegment, Cpu, Disassembler};
 
 const HELPTEXT: &'static str = "
 
@@ -62,7 +62,7 @@ pub struct MemoryMonitor {
 pub struct VirtualMachine {
     pub cpu: Cpu,
     pub monitor: MemoryMonitor,
-    code_offset: u16,
+    segments: Vec<CodeSegment>,
     clock_rate: Option<u32>,
     receiver: Receiver<String>,
     last_command: String,
@@ -72,7 +72,7 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub fn new<CR>(cpu: Cpu, code_offset: u16, clock_rate: CR) -> VirtualMachine
+    pub fn new<CR>(cpu: Cpu, clock_rate: CR) -> VirtualMachine
         where CR: Into<Option<u32>>
     {
         let (tx, rx) = channel();
@@ -98,7 +98,7 @@ impl VirtualMachine {
 
         VirtualMachine {
             cpu: cpu,
-            code_offset: code_offset,
+            segments: Vec::new(),
             clock_rate: clock_rate.into(),
             receiver: rx,
             monitor: MemoryMonitor {
@@ -111,6 +111,18 @@ impl VirtualMachine {
             broken: false,
             step: false,
         }
+    }
+
+    pub fn load_code_segments(&mut self, segments: Vec<CodeSegment>) {
+        if segments.len() == 0 {
+            return;
+        }
+        self.segments = segments;
+        for segment in &self.segments {
+            self.cpu.load(&segment.code, segment.address);
+        }
+
+        self.cpu.registers.PC = self.segments[0].address;
     }
 
     /// Cycles the Virtual Machine CPU according to the clock rate
@@ -297,21 +309,29 @@ impl VirtualMachine {
         println!("");
         println!("-- Disassembly --");
 
-        let disassembler = Disassembler::with_offset(self.code_offset);
-        let pairs = disassembler.disassemble_with_addresses(self.cpu.get_code());
-        let result = self.highlight_lines(self.cpu.registers.PC as usize, pairs, false).join("");
-        print!("{}", result);
+        for segment in &self.segments {
+            println!(".ORG ${:04X}", segment.address);
+            let disassembler = Disassembler::with_offset(segment.address);
+            let pairs = disassembler.disassemble_with_addresses(&segment.code);
+            let result = self.highlight_lines(self.cpu.registers.PC as usize,
+                                 pairs,
+                                 segment.address,
+                                 false)
+                .join("");
+            print!("{}", result);
+            println!("");
+        }
     }
 
     fn dump_local_disassembly(&self) {
         println!("");
         println!("-- Disassembly --");
 
-        let disassembler = Disassembler::with_offset(self.code_offset);
         let pc = self.cpu.registers.PC as usize;
-        let code = self.cpu.get_code();
-        let pairs = disassembler.disassemble_with_addresses(code);
-        let result = self.highlight_lines(pc, pairs, true).join("");
+        let local_segment = self.get_local_segment(pc);
+        let disassembler = Disassembler::with_offset(local_segment.address);
+        let pairs = disassembler.disassemble_with_addresses(&local_segment.code);
+        let result = self.highlight_lines(pc, pairs, local_segment.address, true).join("");
         print!("{}", result);
     }
 
@@ -364,24 +384,36 @@ impl VirtualMachine {
                  self.cpu.stack.pointer);
     }
 
+    fn get_local_segment(&self, pc: usize) -> &CodeSegment {
+        for segment in &self.segments {
+            let addr = segment.address as usize;
+            if pc >= addr && pc <= addr + segment.code.len() {
+                return segment;
+            }
+        }
+
+        &self.segments[0]
+    }
+
     fn highlight_lines(&self,
                        pc: usize,
                        pairs: Vec<(String, u16)>,
+                       segment_start: u16,
                        limit_results: bool)
                        -> Vec<String> {
         let mut result = Vec::new();
 
-        let base = pc - self.code_offset as usize;
+        let base = pc as isize - segment_start as isize;
 
         for pair in pairs {
             if limit_results {
                 let start = if base > 0x0A { base - 0x0A } else { 0 };
-                if (pair.1 as usize) < start || (pair.1 as usize) > base + 0x0A {
+                if (pair.1 as isize) < start || (pair.1 as isize) > base + 0x0A {
                     continue;
                 }
             }
-            let current_line = pc as u16 == self.code_offset + pair.1;
-            let breakpoint = self.breakpoints[self.code_offset as usize + pair.1 as usize] > 0x00;
+            let current_line = pc as u16 == segment_start + pair.1;
+            let breakpoint = self.breakpoints[segment_start as usize + pair.1 as usize] > 0x00;
 
             if breakpoint && current_line {
                 result.push(format!("> * {}", pair.0));
