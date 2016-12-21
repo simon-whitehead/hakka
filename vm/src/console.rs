@@ -13,6 +13,7 @@ use text::Text;
 
 const FONT_FILE: &'static str = "../assets/FantasqueSansMono-Bold.ttf";
 const FONT_COLOR: Color = Color::RGBA(45, 200, 45, 255);
+const FONT_SIZE: u16 = 18;
 
 pub struct Console<'a> {
     pub visible: bool,
@@ -65,8 +66,8 @@ impl<'a> Console<'a> {
             leader: Text::new(&ttf_context,
                               &mut renderer,
                               "hakka>",
-                              Position::XY(0, 720 - 18),
-                              18,
+                              Position::XY(0, 720 - FONT_SIZE as i32),
+                              FONT_SIZE,
                               FONT_COLOR,
                               FONT_FILE),
             input_buffer: "".into(),
@@ -179,8 +180,8 @@ impl<'a> Console<'a> {
             let text = Text::new(&self.ttf_context,
                                  &mut renderer,
                                  &output_text[..],
-                                 Position::XY(60, 720 - 18),
-                                 18,
+                                 Position::XY(60, 720 - FONT_SIZE as i32),
+                                 FONT_SIZE,
                                  FONT_COLOR,
                                  FONT_FILE);
             text.render(&mut renderer);
@@ -192,7 +193,7 @@ impl<'a> Console<'a> {
     }
 
     fn generate_backbuffer_texture(&mut self, mut renderer: &mut Renderer) {
-        let mut font = self.ttf_context.load_font(Path::new(FONT_FILE), 18).unwrap();
+        let mut font = self.ttf_context.load_font(Path::new(FONT_FILE), FONT_SIZE).unwrap();
         font.set_style(STYLE_BOLD);
         let mut main_surface = Surface::new(640, 702, PixelFormatEnum::RGBA8888).unwrap();
         let mut counter = 2;
@@ -202,7 +203,10 @@ impl<'a> Console<'a> {
                 .unwrap();
             surface.blit(None,
                       &mut main_surface,
-                      Some(Rect::new(0, 720 - (18 * counter), 720, 18)))
+                      Some(Rect::new(0,
+                                     720 - (FONT_SIZE as i32 * counter),
+                                     720,
+                                     FONT_SIZE as u32)))
                 .unwrap();
             counter += 1;
         }
