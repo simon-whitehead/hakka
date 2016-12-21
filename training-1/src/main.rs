@@ -70,6 +70,8 @@ fn main() {
     let mut monitor_last = 0;
 
     let mut console = Console::new(&ttf_context, &mut renderer);
+    console.println("Welcome to hakka. Type 'help' for instructions.");
+    console.println("");
 
     'running: loop {
 
