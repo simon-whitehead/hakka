@@ -2,6 +2,8 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Renderer, Texture, TextureQuery};
 
+use position::Position;
+
 pub struct Ship {
     pub x: i32,
     pub y: i32,
@@ -14,13 +16,18 @@ pub struct Ship {
 }
 
 impl Ship {
-    pub fn new(texture: Texture, flame_texture: Texture) -> Ship {
+    pub fn new(texture: Texture, flame_texture: Texture, position: Position) -> Ship {
         let TextureQuery { width: ship_width, height: ship_height, .. } = texture.query();
         let TextureQuery { width: flame_width, height: flame_height, .. } = flame_texture.query();
 
+        let (x, y) = match position {
+            Position::HorizontalCenter(x, y) => (x - ship_width as i32 / 2, y),
+            Position::XY(x, y) => (x, y),
+        };
+
         Ship {
-            x: 0,
-            y: 1200,
+            x: x,
+            y: y,
             width: ship_width,
             height: ship_height,
             texture: texture,

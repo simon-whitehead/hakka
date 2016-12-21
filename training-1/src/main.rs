@@ -2,6 +2,7 @@ extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
 
+mod position;
 mod ship;
 mod text;
 
@@ -15,10 +16,11 @@ use sdl2::rect::Rect;
 use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
+use position::Position;
 use vm::VirtualMachine;
 
 const FPS_STEP: u32 = 1000 / 60;
-const WINDOW_WIDTH: u32 = 400;
+const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
@@ -33,7 +35,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem.window("hakka", WINDOW_WIDTH, WINDOW_HEIGHT)
-        .position_centered()
+        .fullscreen()
         .build()
         .unwrap();
 
@@ -47,8 +49,7 @@ fn main() {
     let finish_text = text::Text::new(&ttf_context,
                                       &mut renderer,
                                       "FINISH",
-                                      100,
-                                      25,
+                                      Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 25),
                                       56,
                                       Color::RGBA(0, 0, 0, 255),
                                       "FantasqueSansMono-Bold.ttf");
@@ -56,8 +57,7 @@ fn main() {
     let win_text = text::Text::new(&ttf_context,
                                    &mut renderer,
                                    "PASSED",
-                                   100,
-                                   330,
+                                   Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 330),
                                    64,
                                    Color::RGBA(0, 0, 0, 255),
                                    "FantasqueSansMono-Bold.ttf");
@@ -65,7 +65,9 @@ fn main() {
     let mut events = sdl_context.event_pump().unwrap();
 
     let mut level_complete = false;
-    let mut ship = ship::Ship::new(ship_texture, ship_flame_texture);
+    let mut ship = ship::Ship::new(ship_texture,
+                                   ship_flame_texture,
+                                   Position::HorizontalCenter((WINDOW_WIDTH / 2) as i32, 500));
     let mut last_fps = 0;
     let mut monitor_last = 0;
 
@@ -148,7 +150,8 @@ fn init_cpu() -> Cpu {
     let mut cpu = Cpu::new();
     cpu.flags.interrupt_disabled = false;
 
-    cpu.memory[0x00] = 0x90;
+    cpu.memory[0x00] = 0x47;
+    cpu.memory[0x01] = 0x02;
     cpu.memory[0x02] = 0xFF;
     cpu.memory[0x03] = 0x01;
     cpu.memory[0x05] = 0x05;
