@@ -166,6 +166,8 @@ impl<'a> VirtualMachine<'a> {
             if self.monitor.enabled {
                 self.monitor.enabled = false;
             }
+        } else if parts[0] == "clear" || parts[0] == "cls" {
+            self.console.clear();
         } else if parts[0] == "help" {
             self.console.print(format!("{}", HELPTEXT));
         } else if parts[0] == "source" {

@@ -170,6 +170,10 @@ impl<'a> Console<'a> {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.buffer.clear();
+    }
+
     pub fn try_process_command(&mut self) -> Option<String> {
         if self.last_command.len() > 0 {
             let cmd = self.last_command.clone();
