@@ -112,7 +112,8 @@ impl<'a> Console<'a> {
 
     pub fn process(&mut self, event: &Event) {
         match *event {
-            Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+            Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } |
+            Event::KeyUp { keycode: Option::Some(Keycode::Backslash), .. }           => {
                 self.toggle();
             }
             Event::TextInput { ref text, .. } => {
