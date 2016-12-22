@@ -171,7 +171,7 @@ impl<'a> VirtualMachine<'a> {
         } else if parts[0] == "clear" || parts[0] == "cls" {
             self.console.clear();
         } else if parts[0] == "help" {
-            self.console.print(format!("{}", HELPTEXT));
+            self.console.print_lines(format!("{}", HELPTEXT));
         } else if parts[0] == "source" {
             self.dump_disassembly();
         } else if parts[0] == "list" {

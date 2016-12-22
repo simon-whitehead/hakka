@@ -258,6 +258,14 @@ impl<'a> Console<'a> {
         self.line_ending = true;
     }
 
+    pub fn print_lines<S>(&mut self, text: S)
+        where S: Into<String>
+    {
+        for line in text.into().lines() {
+            self.println(line);
+        }
+    }
+
     pub fn wrap_line(&mut self) {
         self.buffer.push("".into());
         self.line_ending = false;
