@@ -5,7 +5,7 @@ use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::rect::{Point, Rect};
+use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
 use sdl2::surface::Surface;
 use sdl2::ttf::{Font, Sdl2TtfContext, STYLE_BOLD};
@@ -33,7 +33,6 @@ pub struct Console<'a> {
     buffer: Vec<String>,
     backbuffer_y: i32,
     texture: Texture,
-    backbuffer_texture: Texture,
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
     font: Font<'a>,
@@ -49,24 +48,6 @@ impl<'a> Console<'a> {
             renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
                 .unwrap();
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..height {
-                    for x in 0..width / 2 {
-                        let x = x as usize;
-                        let y = y as usize;
-                        let offset = y * pitch + x * 4;
-                        buffer[offset + 0] = 182;
-                        buffer[offset + 1] = 0;
-                        buffer[offset + 2] = 0;
-                        buffer[offset + 3] = 0;
-                    }
-                }
-            })
-            .unwrap();
-
-        let mut backbuffer_texture =
-            renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
-                .unwrap();
-        backbuffer_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..height {
                     for x in 0..width / 2 {
                         let x = x as usize;
@@ -101,7 +82,6 @@ impl<'a> Console<'a> {
             buffer: Vec::new(),
             backbuffer_y: 0,
             texture: texture,
-            backbuffer_texture: backbuffer_texture,
             ttf_context: ttf_context,
             size: (width / 2, height),
             font: font,
@@ -324,7 +304,6 @@ impl<'a> Console<'a> {
             self.render_leader(&mut renderer);
 
             // Insert the cursor via a dodgy vertical line
-            let mut output_text = self.input_buffer.clone();
             let cursor_x =
                 60 + PADDING as i16 +
                 self.font.size_of(&self.input_buffer[..self.cursor_position]).unwrap().0 as i16;
@@ -337,10 +316,10 @@ impl<'a> Console<'a> {
                             FONT_COLOR)
                 .unwrap();
 
-            if output_text.len() > 0 {
+            if self.input_buffer.len() > 0 {
                 let text = Text::new(&self.ttf_context,
                                      &mut renderer,
-                                     &output_text[..],
+                                     &self.input_buffer[..],
                                      Position::XY(60 + PADDING,
                                                   self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
                                      FONT_SIZE,
@@ -357,23 +336,25 @@ impl<'a> Console<'a> {
         // Render the border
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 255));
         // North
-        renderer.thick_line(0, 0, self.size.0 as i16, 0, 1, BORDER_COLOR);
+        renderer.thick_line(0, 0, self.size.0 as i16, 0, 1, BORDER_COLOR).unwrap();
 
         // East
         renderer.thick_line(self.size.0 as i16,
-                            0,
-                            self.size.0 as i16,
-                            self.size.1 as i16,
-                            1,
-                            BORDER_COLOR);
+                        0,
+                        self.size.0 as i16,
+                        self.size.1 as i16,
+                        1,
+                        BORDER_COLOR)
+            .unwrap();
 
         // South
         renderer.thick_line(0,
-                            self.size.1 as i16 - 1,
-                            self.size.0 as i16,
-                            self.size.1 as i16 - 1,
-                            1,
-                            BORDER_COLOR);
+                        self.size.1 as i16 - 1,
+                        self.size.0 as i16,
+                        self.size.1 as i16 - 1,
+                        1,
+                        BORDER_COLOR)
+            .unwrap();
     }
 
     fn render_leader(&self, mut renderer: &mut Renderer) {
@@ -381,7 +362,7 @@ impl<'a> Console<'a> {
         // nicer.
         let rect_y = self.size.1 as i32 - FONT_SIZE as i32 - PADDING;
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
-        renderer.fill_rect(Rect::new(0, rect_y, self.size.0, rect_y as u32));
+        renderer.fill_rect(Rect::new(0, rect_y, self.size.0, rect_y as u32)).unwrap();
         self.leader.render(&mut renderer);
     }
 
@@ -392,7 +373,7 @@ impl<'a> Console<'a> {
             .unwrap();
         let mut counter = 2;
         for line in self.buffer.iter().rev().take(100) {
-            let mut y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
+            let y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
             if line.trim().len() == 0 {
@@ -413,6 +394,6 @@ impl<'a> Console<'a> {
 
         let TextureQuery { width, height, .. } = texture.query();
 
-        renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height)));
+        renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height))).unwrap();
     }
 }

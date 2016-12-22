@@ -23,8 +23,8 @@ const FPS_STEP: u32 = 1000 / 60;
 
 fn main() {
 
-    let mut window_width = 1280;
-    let mut window_height = 720;
+    let window_width = 1280;
+    let window_height = 720;
 
     let sdl_context = sdl2::init().unwrap();
     let ttf_context = sdl2::ttf::init().unwrap();
@@ -34,7 +34,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let (window_width, window_height) = window.size();
+    let (window_width, _) = window.size();
 
     let mut renderer = window.renderer()
         .accelerated()
@@ -63,7 +63,7 @@ fn main() {
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
     let segments = assemble("training-1/level.asm");
-    let mut console = Console::new(&ttf_context, &mut renderer);
+    let console = Console::new(&ttf_context, &mut renderer);
     let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);
 
@@ -162,7 +162,7 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu(mut renderer: &mut Renderer, ship_width: u32) -> Cpu {
+fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
     let mut cpu = Cpu::new();
     cpu.flags.interrupt_disabled = false;
 
