@@ -38,6 +38,7 @@ pub struct Console<'a> {
     size: (u32, u32),
     font: Font<'a>,
     line_ending: bool, // Tracks where the next print call should append to
+    ctrl: bool, // Tracks the Ctrl key being pressed
 }
 
 impl<'a> Console<'a> {
@@ -105,6 +106,7 @@ impl<'a> Console<'a> {
             size: (width / 2, height),
             font: font,
             line_ending: true,
+            ctrl: false,
         }
     }
 
@@ -135,6 +137,14 @@ impl<'a> Console<'a> {
             &Event::KeyDown { keycode, .. } => {
                 if self.visible {
                     match keycode { 
+                        Some(Keycode::LCtrl) |
+                        Some(Keycode::RCtrl) => self.ctrl = true,
+                        Some(Keycode::C) => {
+                            if self.ctrl {
+                                self.input_buffer = "".into();
+                                self.commit();
+                            }
+                        }
                         Some(Keycode::Left) => {
                             self.cursor_left();
                         }
@@ -157,6 +167,8 @@ impl<'a> Console<'a> {
             &Event::KeyUp { keycode, .. } => {
                 if self.visible {
                     match keycode { 
+                        Some(Keycode::LCtrl) |
+                        Some(Keycode::RCtrl) => self.ctrl = false,
                         Some(Keycode::Up) => {
                             self.history_navigate_back();
                         }
