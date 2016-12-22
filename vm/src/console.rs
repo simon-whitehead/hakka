@@ -92,10 +92,6 @@ impl<'a> Console<'a> {
 
     pub fn process(&mut self, event: &Event) {
         match *event {
-            Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } |
-            Event::KeyUp { keycode: Option::Some(Keycode::Backslash), .. }   => {
-                self.toggle();
-            }
             Event::TextInput { ref text, .. } => {
                 if self.visible {
                     if text == "`" || text == "\\" {
@@ -164,6 +160,11 @@ impl<'a> Console<'a> {
                         }
                         Some(Keycode::Home) => {
                             self.cursor_position = 0;
+                        },
+                        // Toggle console
+                        Some(Keycode::Backquote) |
+                        Some(Keycode::Backslash) => {
+                            self.toggle();
                         }
                         _ => (),
                     }

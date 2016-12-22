@@ -87,7 +87,10 @@ fn main() {
                     Event::KeyUp { keycode, .. } => {
                         vm.cpu.memory[0x04] = 0;
                         match keycode {
-                            Some(Keycode::Backquote) | Some(Keycode::Backslash) => vm.console.toggle(),
+                            Some(Keycode::Backquote) |
+                            Some(Keycode::Backslash) => {
+                                vm.console.toggle();
+                            },
                             _ => (),
                         }
                     }
