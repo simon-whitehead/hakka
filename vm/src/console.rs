@@ -4,15 +4,15 @@ use std::path::Path;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::rect::Rect;
+use sdl2::rect::{Point, Rect};
 use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
 use sdl2::surface::Surface;
-use sdl2::ttf::{Sdl2TtfContext, STYLE_BOLD};
+use sdl2::ttf::{Font, Sdl2TtfContext, STYLE_BOLD};
 
 use position::Position;
 use text::Text;
 
-const PADDING: i32 = 5;
+const PADDING: i32 = 10;
 
 const FONT_FILE: &'static str = "../assets/FantasqueSansMono-Bold.ttf";
 const FONT_COLOR: Color = Color::RGBA(45, 200, 45, 255);
@@ -30,6 +30,7 @@ pub struct Console<'a> {
     backbuffer_texture: Texture,
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
+    font: Font<'a>,
 }
 
 impl<'a> Console<'a> {
@@ -72,6 +73,9 @@ impl<'a> Console<'a> {
             })
             .unwrap();
 
+        let mut font = ttf_context.load_font(Path::new(FONT_FILE), FONT_SIZE).unwrap();
+        font.set_style(STYLE_BOLD);
+
         Console {
             visible: false,
             leader: Text::new(&ttf_context,
@@ -89,6 +93,7 @@ impl<'a> Console<'a> {
             backbuffer_texture: backbuffer_texture,
             ttf_context: ttf_context,
             size: (width / 2, height),
+            font: font,
         }
     }
 
@@ -214,30 +219,27 @@ impl<'a> Console<'a> {
                 .unwrap();
             self.render_leader(&mut renderer);
             self.generate_backbuffer_texture(&mut renderer);
-            // self.render_buffer(&mut renderer);
 
-            // Insert the cursor in its proper position
+            // Insert the cursor via a dodgy vertical line
             let mut output_text = self.input_buffer.clone();
-            if self.cursor_position < output_text.len() {
-                output_text.insert(self.cursor_position, '|');
-            } else {
-                output_text.push_str("|");
-            }
+            let cursor_x =
+                60 + PADDING +
+                self.font.size_of(&self.input_buffer[..self.cursor_position]).unwrap().0 as i32;
+            // Draw a dodgy cursor
+            renderer.set_draw_color(FONT_COLOR);
+            renderer.draw_line(Point::new(cursor_x, self.size.1 as i32 - FONT_SIZE as i32 - PADDING), Point::new(cursor_x, self.size.1 as i32 - PADDING)).unwrap();
 
-            // If no input.. only draw the cursor
-            if self.input_buffer.len() == 0 {
-                output_text = "|".into();
+            if output_text.len() > 0 {
+                let text = Text::new(&self.ttf_context,
+                                     &mut renderer,
+                                     &output_text[..],
+                                     Position::XY(60 + PADDING,
+                                                  self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
+                                     FONT_SIZE,
+                                     FONT_COLOR,
+                                     FONT_FILE);
+                text.render(&mut renderer);
             }
-
-            let text = Text::new(&self.ttf_context,
-                                 &mut renderer,
-                                 &output_text[..],
-                                 Position::XY(60 + PADDING,
-                                              self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
-                                 FONT_SIZE,
-                                 FONT_COLOR,
-                                 FONT_FILE);
-            text.render(&mut renderer);
 
             // Render the border
             renderer.set_draw_color(Color::RGBA(255, 255, 255, 255));
@@ -250,8 +252,6 @@ impl<'a> Console<'a> {
     }
 
     fn generate_backbuffer_texture(&mut self, mut renderer: &mut Renderer) {
-        let mut font = self.ttf_context.load_font(Path::new(FONT_FILE), FONT_SIZE).unwrap();
-        font.set_style(STYLE_BOLD);
         let mut main_surface = Surface::new(self.size.0,
                                             (self.size.1 - (FONT_SIZE as u32)),
                                             PixelFormatEnum::RGBA8888)
@@ -265,7 +265,8 @@ impl<'a> Console<'a> {
                 continue;
             }
 
-            let surface = font.render(&line)
+            let surface = self.font
+                .render(&line)
                 .blended(FONT_COLOR)
                 .unwrap();
             surface.blit(None,
