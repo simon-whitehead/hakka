@@ -127,7 +127,7 @@ impl<'a> Console<'a> {
                 if self.visible {
                     if self.buffer.len() * FONT_SIZE as usize >
                        (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
-                        self.backbuffer_y += y * 2;
+                        self.backbuffer_y += y * 6;
                         if self.backbuffer_y < 0 {
                             self.backbuffer_y = 0;
                         }
