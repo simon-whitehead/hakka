@@ -111,9 +111,6 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
-                self.toggle();
-            }
             &Event::KeyUp { keycode: Option::Some(Keycode::Left), .. } => {
                 if self.visible {
                     self.cursor_left();

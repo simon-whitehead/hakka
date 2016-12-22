@@ -32,7 +32,6 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem.window("hakka", WINDOW_WIDTH, WINDOW_HEIGHT)
-        .fullscreen()
         .build()
         .unwrap();
 
@@ -76,23 +75,29 @@ fn main() {
     'running: loop {
 
         for event in events.poll_iter() {
-            console.process(&event);
-            match event {
-                Event::Quit { .. } => break 'running,
-                Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
-                    vm.cpu.memory[0x04] = 38;
+            if console.visible {
+                console.process(&event);
+            } else {
+                match event {
+                    Event::Quit { .. } => break 'running,
+                    Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+                        console.toggle();
+                    }
+                    Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
+                        vm.cpu.memory[0x04] = 38;
+                    }
+                    Event::KeyDown { keycode: Option::Some(Keycode::Down), .. } => {
+                        vm.cpu.memory[0x04] = 40;
+                    }
+                    Event::KeyUp { keycode: Option::Some(Keycode::Up), .. } => {
+                        vm.cpu.memory[0x04] = 0;
+                    }
+                    Event::KeyUp { keycode: Option::Some(Keycode::Down), .. } => {
+                        vm.cpu.memory[0x04] = 0;
+                    }
+                    Event::KeyDown { keycode: Option::Some(Keycode::Escape), .. } => break 'running,
+                    _ => (),
                 }
-                Event::KeyDown { keycode: Option::Some(Keycode::Down), .. } => {
-                    vm.cpu.memory[0x04] = 40;
-                }
-                Event::KeyUp { keycode: Option::Some(Keycode::Up), .. } => {
-                    vm.cpu.memory[0x04] = 0;
-                }
-                Event::KeyUp { keycode: Option::Some(Keycode::Down), .. } => {
-                    vm.cpu.memory[0x04] = 0;
-                }
-                Event::KeyDown { keycode: Option::Some(Keycode::Escape), .. } => break 'running,
-                _ => (),
             }
         }
 
