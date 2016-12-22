@@ -329,13 +329,12 @@ impl<'a> VirtualMachine<'a> {
     }
 
     pub fn dump_memory(&mut self) {
-        self.console.println("");
         for chunk in self.cpu.memory[self.monitor.start_addr..self.monitor.end_addr + 0x01]
             .chunks(8) {
             for b in chunk {
                 self.console.print(format!("{:02X} ", *b));
             }
-            self.console.println("");
+            self.console.wrap_line();
         }
     }
 
