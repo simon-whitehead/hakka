@@ -26,6 +26,8 @@ pub struct Console<'a> {
 
     leader: Text,
     input_buffer: String,
+    last_command: String,
+    command_history: Vec<String>,
     cursor_position: usize,
     buffer: Vec<String>,
     backbuffer_y: i32,
@@ -89,6 +91,8 @@ impl<'a> Console<'a> {
                               FONT_COLOR,
                               FONT_FILE),
             input_buffer: "".into(),
+            last_command: "".into(),
+            command_history: Vec::new(),
             cursor_position: 0,
             buffer: Vec::new(),
             backbuffer_y: 0,
@@ -158,11 +162,23 @@ impl<'a> Console<'a> {
 
     pub fn process_command(&mut self) {
         let command = self.input_buffer.clone();
+        self.command_history.push(command.clone());
+        self.last_command = command.clone();
 
         if command == "exit" {
             std::process::exit(0);
         } else {
             self.println("Unknown command");
+        }
+    }
+
+    pub fn try_process_command(&mut self) -> Option<String> {
+        if self.last_command.len() > 0 {
+            let cmd = self.last_command.clone();
+            self.last_command.clear();
+            Some(cmd)
+        } else {
+            None
         }
     }
 

@@ -64,7 +64,8 @@ fn main() {
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
     let segments = assemble("level.asm");
-    let mut vm = VirtualMachine::new(cpu, 150);
+    let mut console = Console::new(&ttf_context, &mut renderer);
+    let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);
 
     let mut events = sdl_context.event_pump().unwrap();
@@ -76,20 +77,16 @@ fn main() {
     let mut last_fps = 0;
     let mut monitor_last = 0;
 
-    let mut console = Console::new(&ttf_context, &mut renderer);
-    console.println("Welcome to hakka. Type 'help' for instructions.");
-    console.println("");
-
     'running: loop {
 
         for event in events.poll_iter() {
-            if console.visible {
-                console.process(&event);
+            if vm.console.visible {
+                vm.console.process(&event);
             } else {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
-                        console.toggle();
+                        vm.console.toggle();
                     }
                     Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
                         vm.cpu.memory[0x04] = 38;
@@ -110,7 +107,9 @@ fn main() {
         }
 
         if !level_complete {
-            vm.try_execute_command();
+            if let Some(cmd) = vm.console.try_process_command() {
+                vm.execute_command(cmd);
+            }
             ship.process(&vm.cpu.memory[..]);
 
             // Pull the ship back so it can't go past a certain spot
@@ -142,7 +141,7 @@ fn main() {
                 if ship.y <= 0x8C {
                     level_complete = true;
                 }
-                console.render(&mut renderer);
+                vm.render(&mut renderer);
                 renderer.present();
                 last_fps = now;
             }
