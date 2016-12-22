@@ -166,6 +166,12 @@ impl<'a> Console<'a> {
                         Some(Keycode::Return) => {
                             self.commit();
                         }
+                        Some(Keycode::End) => {
+                            self.cursor_position = self.input_buffer.len();
+                        }
+                        Some(Keycode::Home) => {
+                            self.cursor_position = 0;
+                        }
                         _ => (),
                     }
                 }
