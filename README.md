@@ -5,7 +5,7 @@ A game that you can't pass simply by playing the game. You have to hack it.
 is being released to test the waters to see if people find it interesting.
 
 ## Requirements
-Requires `SDL2`, `SDL2_image` and `SDL2_ttf`.
+Requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
 
 [You can see instructions for installing the SDL2 development libraries here](https://github.com/AngryLawyer/rust-sdl2#sdl20-development-libraries)
 
