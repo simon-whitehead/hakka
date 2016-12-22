@@ -130,6 +130,7 @@ impl<'a> VirtualMachine<'a> {
                     self.console.println("");
                     self.console
                         .println(format!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC));
+                    self.console.toggle();
                 }
                 // If we stepped, dump the local disassembly
                 if self.step {
@@ -147,6 +148,7 @@ impl<'a> VirtualMachine<'a> {
                 self.broken = true;
                 self.console.println("");
                 self.console.println(format!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC));
+                self.console.toggle();
             }
         }
     }
