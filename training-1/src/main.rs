@@ -31,7 +31,6 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem.window("hakka", window_width, window_height)
-        .fullscreen_desktop()
         .build()
         .unwrap();
 

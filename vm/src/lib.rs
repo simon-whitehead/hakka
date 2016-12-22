@@ -238,15 +238,18 @@ impl<'a> VirtualMachine<'a> {
                 if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
                     if addr <= u16::max_value() as usize {
                         if self.breakpoints[addr] > 0 {
+                            self.console.println(format!("Removed breakpoint at {:04X}", addr));
                             self.breakpoints[addr] = 0;
                         } else {
+                            self.console.println(format!("Added breakpoint at {:04X}", addr));
                             self.breakpoints[addr] = 1;
                         }
                     } else {
                         self.console.println("ERR: Value outside addressable range.");
                     }
                 } else {
-                    self.console.println("ERR: Unable to parse breakpoint address");
+                    self.broken = true;
+                    println!("Execution stopped");
                 }
             } else {
                 self.console.println("ERR: Requires 1 argument");
@@ -255,6 +258,7 @@ impl<'a> VirtualMachine<'a> {
             self.broken = false;
             self.console.println("Execution resumed");
         } else if parts[0] == "step" || parts[0] == "s" {
+            self.broken = true;
             self.step = true;
         } else {
             self.console.println("Unknown command");
