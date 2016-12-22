@@ -41,8 +41,8 @@ fn main() {
         .build()
         .unwrap();
 
-    let ship_texture = renderer.load_texture(Path::new("../assets/ship.png")).unwrap();
-    let ship_flame_texture = renderer.load_texture(Path::new("../assets/ship-flame.png"))
+    let ship_texture = renderer.load_texture(Path::new("assets/ship.png")).unwrap();
+    let ship_flame_texture = renderer.load_texture(Path::new("assets/ship-flame.png"))
         .unwrap();
     let finish_text = Text::new(&ttf_context,
                                 &mut renderer,
@@ -50,7 +50,7 @@ fn main() {
                                 Position::HorizontalCenter((window_width / 2) as i32, 25),
                                 56,
                                 Color::RGBA(0, 0, 0, 255),
-                                "../assets/FantasqueSansMono-Bold.ttf");
+                                "assets/FantasqueSansMono-Bold.ttf");
 
     let win_text = Text::new(&ttf_context,
                              &mut renderer,
@@ -58,11 +58,11 @@ fn main() {
                              Position::HorizontalCenter((window_width / 2) as i32, 330),
                              64,
                              Color::RGBA(0, 0, 0, 255),
-                             "../assets/FantasqueSansMono-Bold.ttf");
+                             "assets/FantasqueSansMono-Bold.ttf");
 
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
-    let segments = assemble("level.asm");
+    let segments = assemble("training-1/level.asm");
     let mut console = Console::new(&ttf_context, &mut renderer);
     let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);

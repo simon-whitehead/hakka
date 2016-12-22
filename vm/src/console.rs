@@ -17,7 +17,7 @@ const BORDER_COLOR: Color = Color::RGBA(255, 255, 255, 64);
 
 const PADDING: i32 = 10;
 
-const FONT_FILE: &'static str = "../assets/FantasqueSansMono-Bold.ttf";
+const FONT_FILE: &'static str = "assets/FantasqueSansMono-Bold.ttf";
 const FONT_COLOR: Color = Color::RGBA(45, 200, 45, 255);
 const FONT_SIZE: u16 = 18;
 
