@@ -15,7 +15,7 @@ Requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
 
 The goal of the training level is simple. Fly the ship up to the finish line:
 
-![screen shot 2016-12-20 at 12 17 17 am](https://cloud.githubusercontent.com/assets/2499070/21314197/bc7765b4-c649-11e6-88e9-89f11b71d704.png)
+![screen shot 2016-12-22 at 7 42 18 pm](https://cloud.githubusercontent.com/assets/2499070/21419963/fc9f33f6-c87e-11e6-8e31-0c9a39ccbece.png)
 
 You can fly it to the finish line with the `Up` arrow. It should be pretty simple..
 
@@ -26,11 +26,11 @@ the terminal supports features to interrogate the virtual machine.
 
 ### Look at the game code
 
-![screen shot 2016-12-20 at 12 20 06 am](https://cloud.githubusercontent.com/assets/2499070/21314265/2db552a4-c64a-11e6-92b2-332427d09864.png)
+![screen shot 2016-12-22 at 7 43 09 pm](https://cloud.githubusercontent.com/assets/2499070/21419974/10e8113e-c87f-11e6-815b-85349ccc2550.png)
 
 ### Set breakpoints and step through the code
 
-![screen shot 2016-12-20 at 12 20 22 am](https://cloud.githubusercontent.com/assets/2499070/21314282/48bfbd6e-c64a-11e6-8efd-e8f6d4d024d4.png)
+![screen shot 2016-12-22 at 7 43 35 pm](https://cloud.githubusercontent.com/assets/2499070/21419976/11bcc3b6-c87f-11e6-8f93-a5bd144ddd22.png)
 
 ### ..or alter the game memory directly!
 
