@@ -1,4 +1,4 @@
-# hakka
+# hakka [![Build Status](https://travis-ci.org/simon-whitehead/hakka.svg?branch=master)](https://travis-ci.org/simon-whitehead/hakka)
 A game that you can't pass simply by playing the game. You have to hack it.
 
 **NOTE: This is currently in "proof-of-concept" stage** and is being actively developed. This early version
