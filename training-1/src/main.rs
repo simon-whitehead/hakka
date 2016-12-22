@@ -84,23 +84,22 @@ fn main() {
             } else {
                 match event {
                     Event::Quit { .. } => break 'running,
-                    Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } | 
-                    Event::KeyUp { keycode: Option::Some(Keycode::Backslash), .. }   => {
-                        vm.console.toggle();
-                    }
-                    Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
-                        vm.cpu.memory[0x04] = 38;
-                    }
-                    Event::KeyDown { keycode: Option::Some(Keycode::Down), .. } => {
-                        vm.cpu.memory[0x04] = 40;
-                    }
-                    Event::KeyUp { keycode: Option::Some(Keycode::Up), .. } => {
+                    Event::KeyUp { keycode, .. } => {
                         vm.cpu.memory[0x04] = 0;
+                        match keycode {
+                            Some(Keycode::Backquote) | Some(Keycode::Backslash) => vm.console.toggle(),
+                            _ => (),
+                        }
                     }
-                    Event::KeyUp { keycode: Option::Some(Keycode::Down), .. } => {
-                        vm.cpu.memory[0x04] = 0;
+                    Event::KeyDown { keycode, .. } => {
+                        if let Some(Keycode::Escape) = keycode {
+                            break 'running;
+                        } else if let Some(Keycode::Up) = keycode {
+                            vm.cpu.memory[0x04] = 38;
+                        } else if let Some(Keycode::Down) = keycode {
+                            vm.cpu.memory[0x04] = 40;
+                        }
                     }
-                    Event::KeyDown { keycode: Option::Some(Keycode::Escape), .. } => break 'running,
                     _ => (),
                 }
             }

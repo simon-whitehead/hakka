@@ -5,8 +5,6 @@ mod console;
 mod position;
 mod text;
 
-use std::io::{self, BufRead, Write};
-
 use rs6502::{CodeSegment, Cpu, Disassembler};
 use sdl2::render::Renderer;
 
@@ -108,12 +106,12 @@ impl<'a> VirtualMachine<'a> {
     }
 
     pub fn load_code_segments(&mut self, segments: Vec<CodeSegment>) {
-        if segments.len() == 0 {
+        if segments.is_empty() {
             return;
         }
         self.segments = segments;
         for segment in &self.segments {
-            self.cpu.load(&segment.code, segment.address);
+            self.cpu.load(&segment.code, segment.address).unwrap();
         }
 
         self.cpu.registers.PC = self.segments[0].address;
@@ -162,16 +160,16 @@ impl<'a> VirtualMachine<'a> {
             input = self.last_command.clone();
         }
 
-        let parts = input.split(" ").collect::<Vec<_>>();
+        let parts = input.split(' ').collect::<Vec<_>>();
 
-        if input.len() == 0 {
+        if input.is_empty() {
             if self.monitor.enabled {
                 self.monitor.enabled = false;
             }
         } else if parts[0] == "clear" || parts[0] == "cls" {
             self.console.clear();
         } else if parts[0] == "help" {
-            self.console.print_lines(format!("{}", HELPTEXT));
+            self.console.print_lines(HELPTEXT);
         } else if parts[0] == "source" {
             self.dump_disassembly();
         } else if parts[0] == "list" {
@@ -197,19 +195,17 @@ impl<'a> VirtualMachine<'a> {
                 } else {
                     self.console.println("ERR: Unable to parse destination byte value");
                 }
-            } else {
-                if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
-                    for p in &parts[2..] {
-                        if let Ok(byte) = u8::from_str_radix(&p.replace("0x", "")[..], 16) {
-                            self.cpu.memory[dst] = byte;
-                            dst += 0x01;
-                        } else {
-                            self.console.println("ERR: Unable to parse source byte value");
-                        }
+            } else if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+                for p in &parts[2..] {
+                    if let Ok(byte) = u8::from_str_radix(&p.replace("0x", "")[..], 16) {
+                        self.cpu.memory[dst] = byte;
+                        dst += 0x01;
+                    } else {
+                        self.console.println("ERR: Unable to parse source byte value");
                     }
-                } else {
-                    self.console.println("ERR: Unable to parse destination byte value");
                 }
+            } else {
+                self.console.println("ERR: Unable to parse destination byte value");
             }
         } else if parts[0] == "memdmp" || parts[0] == "dmp" {
             // 1 argument assumes 1 memory "page"
@@ -267,13 +263,13 @@ impl<'a> VirtualMachine<'a> {
         }
 
         // Don't assign a blank command as a last command
-        if input.len() > 0 {
+        if !input.is_empty() {
             self.last_command = input.clone();
         }
     }
 
     fn enable_memory_monitor(&mut self, input: &str) {
-        let parts: Vec<&str> = input.split(" ").collect();
+        let parts: Vec<&str> = input.split(' ').collect();
         if parts.len() < 3 {
             self.console.println("ERR: Requires 2 arguments. Example: monitor 0x00 0xFF");
         } else {
