@@ -19,3 +19,16 @@ install:
 - pushd SDL2_ttf-* && ./configure && make && sudo make install && popd
 - pushd SDL2_image-* && ./configure && make && sudo make install && popd
 - pushd SDL2_gfx-* && ./autogen.sh && ./configure && make && sudo make install && popd
+before_script:
+- |
+  pip install 'travis-cargo<0.2' --user &&
+  export PATH=$HOME/.local/bin:$PATH
+script:
+- |
+  travis-cargo build -- --all-features &&
+  travis-cargo test -- --all-features &&
+  travis-cargo --only stable doc -- --all-features
+env:
+  global:
+  - TRAVIS_CARGO_NIGHTLY_FEATURE=""
+  - LD_LIBRARY_PATH: "/usr/local/lib"
