@@ -139,6 +139,12 @@ impl<'a> Console<'a> {
                         Some(Keycode::Right) => {
                             self.cursor_right();
                         }
+                        Some(Keycode::Up) => {
+                            self.history_navigate_back();
+                        }
+                        Some(Keycode::Down) => {
+                            self.history_navigate_forward();
+                        }
                         Some(Keycode::Return) => {
                             self.commit();
                         }
@@ -171,6 +177,27 @@ impl<'a> Console<'a> {
 
     pub fn clear(&mut self) {
         self.buffer.clear();
+    }
+
+    fn history_navigate_back(&mut self) {
+        if self.history_position > 0 {
+            self.input_buffer = self.command_history[self.history_position - 1].clone();
+            self.cursor_position = self.input_buffer.len();
+
+            if self.history_position > 0 {
+                self.history_position -= 1;
+            }
+        }
+    }
+
+    fn history_navigate_forward(&mut self) {
+        if self.history_position < self.command_history.len() - 1 {
+            self.input_buffer = self.command_history[self.history_position + 1].clone();
+            self.cursor_position = self.input_buffer.len();
+            if self.history_position < self.command_history.len() {
+                self.history_position += 1;
+            }
+        }
     }
 
     pub fn try_process_command(&mut self) -> Option<String> {
@@ -212,6 +239,7 @@ impl<'a> Console<'a> {
         self.process_command();
         self.input_buffer.clear();
         self.cursor_position = 0;
+        self.history_position = self.command_history.len();
     }
 
     pub fn cursor_left(&mut self) {
