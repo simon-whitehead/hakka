@@ -288,12 +288,12 @@ impl<'a> VirtualMachine<'a> {
             self.console.println(format!(".ORG ${:04X}", segment.address));
             let disassembler = Disassembler::with_offset(segment.address);
             let pairs = disassembler.disassemble_with_addresses(&segment.code);
-            let result = self.highlight_lines(self.cpu.registers.PC as usize,
-                                 pairs,
-                                 segment.address,
-                                 false)
-                .join("");
-            self.console.print(format!("{}", result));
+            for line in self.highlight_lines(self.cpu.registers.PC as usize,
+                                             pairs,
+                                             segment.address,
+                                             false) {
+                self.console.println(format!("{}", line));
+            }
             self.console.println("");
         }
     }
@@ -307,9 +307,12 @@ impl<'a> VirtualMachine<'a> {
             let local_segment = self.get_local_segment(pc);
             let disassembler = Disassembler::with_offset(local_segment.address);
             let pairs = disassembler.disassemble_with_addresses(&local_segment.code);
-            self.highlight_lines(pc, pairs, local_segment.address, true).join("")
+            self.highlight_lines(pc, pairs, local_segment.address, true)
         };
-        self.console.print(format!("{}", result));
+        for line in result {
+            self.console.println(format!("{}", line));
+        }
+        self.console.println("");
     }
 
     pub fn dump_memory_page(&mut self, page: usize) {
@@ -320,8 +323,8 @@ impl<'a> VirtualMachine<'a> {
             for b in chunk {
                 self.console.print(format!("{:02X} ", *b));
             }
+            self.console.wrap_line();
             addr += 0x08;
-            self.console.println("");
         }
     }
 

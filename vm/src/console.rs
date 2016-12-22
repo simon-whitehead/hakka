@@ -37,6 +37,7 @@ pub struct Console<'a> {
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
     font: Font<'a>,
+    line_ending: bool, // Tracks where the next print call should append to
 }
 
 impl<'a> Console<'a> {
@@ -103,6 +104,7 @@ impl<'a> Console<'a> {
             ttf_context: ttf_context,
             size: (width / 2, height),
             font: font,
+            line_ending: true,
         }
     }
 
@@ -130,7 +132,7 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyUp { keycode, .. } => {
+            &Event::KeyDown { keycode, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::Left) => {
@@ -138,15 +140,6 @@ impl<'a> Console<'a> {
                         }
                         Some(Keycode::Right) => {
                             self.cursor_right();
-                        }
-                        Some(Keycode::Up) => {
-                            self.history_navigate_back();
-                        }
-                        Some(Keycode::Down) => {
-                            self.history_navigate_forward();
-                        }
-                        Some(Keycode::Return) => {
-                            self.commit();
                         }
                         Some(Keycode::Backspace) => {
                             self.backspace();
@@ -156,6 +149,22 @@ impl<'a> Console<'a> {
                                 self.cursor_position += 1;
                                 self.backspace();
                             }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            &Event::KeyUp { keycode, .. } => {
+                if self.visible {
+                    match keycode { 
+                        Some(Keycode::Up) => {
+                            self.history_navigate_back();
+                        }
+                        Some(Keycode::Down) => {
+                            self.history_navigate_forward();
+                        }
+                        Some(Keycode::Return) => {
+                            self.commit();
                         }
                         _ => (),
                     }
@@ -213,15 +222,25 @@ impl<'a> Console<'a> {
     pub fn print<S>(&mut self, text: S)
         where S: Into<String>
     {
-        for line in text.into().lines() {
-            self.println(line);
+        if !self.line_ending {
+            let last = self.buffer.last_mut().unwrap();
+            last.push_str(&text.into());
+        } else {
+            self.buffer.push(text.into());
         }
+        self.line_ending = false;
     }
 
     pub fn println<S>(&mut self, text: S)
         where S: Into<String>
     {
         self.buffer.push(text.into());
+        self.line_ending = true;
+    }
+
+    pub fn wrap_line(&mut self) {
+        self.buffer.push("".into());
+        self.line_ending = false;
     }
 
     /// Toggles the visibility of the Console
