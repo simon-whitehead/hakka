@@ -156,39 +156,29 @@ impl<'a> VirtualMachine<'a> {
     {
         let mut input: String = cmd.into().trim().into();
 
-        if input.len() == 0 {
-            if self.monitor.enabled {
-                self.monitor.enabled = false;
-            }
-        }
-
         if input == "r" || input == "repeat" {
             input = self.last_command.clone();
         }
 
         let parts = input.split(" ").collect::<Vec<_>>();
 
-        if parts[0] == "help" {
+        if input.len() == 0 {
+            if self.monitor.enabled {
+                self.monitor.enabled = false;
+            }
+        } else if parts[0] == "help" {
             self.console.print(format!("{}", HELPTEXT));
-        }
-
-        if parts[0] == "source" {
+        } else if parts[0] == "source" {
             self.dump_disassembly();
-        }
-
-        if parts[0] == "list" {
+        } else if parts[0] == "list" {
             self.dump_local_disassembly();
-        }
-
-        if parts[0] == "monitor" || parts[0] == "mon" {
+        } else if parts[0] == "monitor" || parts[0] == "mon" {
             if self.monitor.enabled {
                 self.monitor.enabled = false;
             } else {
                 self.enable_memory_monitor(&input);
             }
-        }
-
-        if parts[0] == "memset" || parts[0] == "set" {
+        } else if parts[0] == "memset" || parts[0] == "set" {
             if parts.len() < 3 {
                 self.console
                     .println("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
@@ -217,9 +207,7 @@ impl<'a> VirtualMachine<'a> {
                     self.console.println("ERR: Unable to parse destination byte value");
                 }
             }
-        }
-
-        if parts[0] == "memdmp" || parts[0] == "dmp" {
+        } else if parts[0] == "memdmp" || parts[0] == "dmp" {
             // 1 argument assumes 1 memory "page"
             if parts.len() == 2 {
                 if let Ok(page_number) = parts[1].parse() {
@@ -240,13 +228,9 @@ impl<'a> VirtualMachine<'a> {
                     self.console.println("ERR: Unable to parse start address value");
                 }
             }
-        }
-
-        if parts[0] == "registers" || parts[0] == "reg" {
+        } else if parts[0] == "registers" || parts[0] == "reg" {
             self.dump_registers();
-        }
-
-        if parts[0] == "break" || parts[0] == "b" {
+        } else if parts[0] == "break" || parts[0] == "b" {
             // 1 argument assumes 1 memory "page"
             if parts.len() == 2 {
                 if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
@@ -265,25 +249,19 @@ impl<'a> VirtualMachine<'a> {
             } else {
                 self.console.println("ERR: Requires 1 argument");
             }
-        }
-
-        if parts[0] == "continue" || parts[0] == "c" {
+        } else if parts[0] == "continue" || parts[0] == "c" {
             self.broken = false;
             self.console.println("Execution resumed");
-        }
-
-        if parts[0] == "step" || parts[0] == "s" {
+        } else if parts[0] == "step" || parts[0] == "s" {
             self.step = true;
+        } else {
+            self.console.println("Unknown command");
         }
-
-        std::io::stdout().write(b"hakka> ").unwrap();
-        std::io::stdout().flush().unwrap();
 
         // Don't assign a blank command as a last command
         if input.len() > 0 {
             self.last_command = input.clone();
         }
-
     }
 
     fn enable_memory_monitor(&mut self, input: &str) {

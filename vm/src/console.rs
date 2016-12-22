@@ -167,8 +167,6 @@ impl<'a> Console<'a> {
 
         if command == "exit" {
             std::process::exit(0);
-        } else {
-            self.println("Unknown command");
         }
     }
 
