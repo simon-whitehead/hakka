@@ -282,7 +282,6 @@ impl<'a> VirtualMachine<'a> {
 
     fn dump_disassembly(&mut self) {
         self.console.println("");
-        self.console.println("-- Disassembly --");
 
         for segment in &self.segments {
             self.console.println(format!(".ORG ${:04X}", segment.address));
@@ -300,7 +299,6 @@ impl<'a> VirtualMachine<'a> {
 
     fn dump_local_disassembly(&mut self) {
         self.console.println("");
-        self.console.println("-- Disassembly --");
 
         let result = {
             let pc = self.cpu.registers.PC as usize;
@@ -317,7 +315,6 @@ impl<'a> VirtualMachine<'a> {
 
     pub fn dump_memory_page(&mut self, page: usize) {
         let mut addr = page * 0x100;
-        self.console.println("-- Memory dump --");
         for chunk in self.cpu.memory[page * 0x100..(page * 0x100) + 0x100].chunks(8) {
             self.console.print(format!("{:04X}: ", addr));
             for b in chunk {
@@ -329,7 +326,7 @@ impl<'a> VirtualMachine<'a> {
     }
 
     pub fn dump_memory(&mut self) {
-        self.console.println("-- Memory dump --");
+        self.console.println("");
         for chunk in self.cpu.memory[self.monitor.start_addr..self.monitor.end_addr + 0x01]
             .chunks(8) {
             for b in chunk {
@@ -340,7 +337,7 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn dump_memory_range(&mut self, start: u16, end: u16) {
-        self.console.println("-- Memory dump --");
+        self.console.println("");
         let start = start as usize;
         let end = end as usize;
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
@@ -352,7 +349,7 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn dump_registers(&mut self) {
-        self.console.println("-- Registers --");
+        self.console.println("");
         self.console.println(format!("A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A));
         self.console.println(format!("X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X));
         self.console.println(format!("Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y));
