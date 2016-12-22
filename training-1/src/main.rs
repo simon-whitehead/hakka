@@ -84,7 +84,8 @@ fn main() {
             } else {
                 match event {
                     Event::Quit { .. } => break 'running,
-                    Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+                    Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } |
+                    Event::KeyUp { keycode: Option::Some(Keycode::T), .. }     => {
                         vm.console.toggle();
                     }
                     Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
