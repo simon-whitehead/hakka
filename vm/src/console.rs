@@ -111,19 +111,19 @@ impl<'a> Console<'a> {
     }
 
     pub fn process(&mut self, event: &Event) {
-        match event {
-            &Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+        match *event {
+            Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
                 self.toggle();
             }
-            &Event::TextInput { ref text, .. } => {
+            Event::TextInput { ref text, .. } => {
                 if self.visible {
-                    if text == "`" {
+                    if text == "`" || text == "\\" {
                         return;
                     }
                     self.add_text(text);
                 }
             }
-            &Event::MouseWheel { y, .. } => {
+            Event::MouseWheel { y, .. } => {
                 if self.visible {
                     if self.buffer.len() * FONT_SIZE as usize >
                        (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
@@ -134,15 +134,15 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyDown { keycode, .. } => {
+            Event::KeyDown { keycode, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::LCtrl) |
                         Some(Keycode::RCtrl) => self.ctrl = true,
                         Some(Keycode::C) => {
                             if self.ctrl {
-                                self.input_buffer = "".into();
-                                self.commit();
+                                self.input_buffer.push_str("^C");
+                                self.commit(false);
                             }
                         }
                         Some(Keycode::Left) => {
@@ -164,7 +164,7 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyUp { keycode, .. } => {
+            Event::KeyUp { keycode, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::LCtrl) |
@@ -176,7 +176,7 @@ impl<'a> Console<'a> {
                             self.history_navigate_forward();
                         }
                         Some(Keycode::Return) => {
-                            self.commit();
+                            self.commit(true);
                         }
                         Some(Keycode::End) => {
                             self.cursor_position = self.input_buffer.len();
@@ -281,9 +281,11 @@ impl<'a> Console<'a> {
         self.cursor_position += 1;
     }
 
-    pub fn commit(&mut self) {
+    pub fn commit(&mut self, execute: bool) {
         self.buffer.push(format!("hakka> {}", self.input_buffer.clone()));
-        self.process_command();
+        if execute {
+            self.process_command();
+        }
         self.input_buffer.clear();
         self.cursor_position = 0;
         self.history_position = self.command_history.len();
