@@ -320,8 +320,8 @@ impl<'a> Console<'a> {
                       None,
                       Some(Rect::new(0, 0, self.size.0, self.size.1)))
                 .unwrap();
-            self.render_leader(&mut renderer);
             self.generate_backbuffer_texture(&mut renderer);
+            self.render_leader(&mut renderer);
 
             // Insert the cursor via a dodgy vertical line
             let mut output_text = self.input_buffer.clone();
@@ -377,6 +377,11 @@ impl<'a> Console<'a> {
     }
 
     fn render_leader(&self, mut renderer: &mut Renderer) {
+        // Render a black background behind it so the buffer scrolling looks
+        // nicer.
+        let rect_y = self.size.1 as i32 - FONT_SIZE as i32 - PADDING;
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        renderer.fill_rect(Rect::new(0, rect_y, self.size.0, rect_y as u32));
         self.leader.render(&mut renderer);
     }
 
