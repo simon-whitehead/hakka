@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Simon Whitehead <chemnova@gmail.com>"]
 
 [dependencies]
+byteorder = "0.5.3"
 rs6502 = "0.2.0"
 vm = { path = "../vm" }
 

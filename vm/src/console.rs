@@ -12,8 +12,7 @@ use sdl2::ttf::{Sdl2TtfContext, STYLE_BOLD};
 use position::Position;
 use text::Text;
 
-const CONSOLE_WIDTH: u32 = 640;
-const CONSOLE_HEIGHT: u32 = 720;
+const PADDING: i32 = 5;
 
 const FONT_FILE: &'static str = "../assets/FantasqueSansMono-Bold.ttf";
 const FONT_COLOR: Color = Color::RGBA(45, 200, 45, 255);
@@ -30,17 +29,19 @@ pub struct Console<'a> {
     texture: Texture,
     backbuffer_texture: Texture,
     ttf_context: &'a Sdl2TtfContext,
+    size: (u32, u32),
 }
 
 impl<'a> Console<'a> {
     /// Creates a new empty Console
     pub fn new(ttf_context: &'a Sdl2TtfContext, mut renderer: &mut Renderer) -> Console<'a> {
+        let (width, height) = renderer.window().unwrap().size();
         let mut texture =
-            renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, CONSOLE_WIDTH, CONSOLE_HEIGHT)
+            renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
                 .unwrap();
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..CONSOLE_HEIGHT {
-                    for x in 0..CONSOLE_WIDTH {
+                for y in 0..height {
+                    for x in 0..width / 2 {
                         let x = x as usize;
                         let y = y as usize;
                         let offset = y * pitch + x * 4;
@@ -54,11 +55,11 @@ impl<'a> Console<'a> {
             .unwrap();
 
         let mut backbuffer_texture =
-            renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, CONSOLE_WIDTH, CONSOLE_HEIGHT)
+            renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
                 .unwrap();
         backbuffer_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..CONSOLE_HEIGHT {
-                    for x in 0..CONSOLE_WIDTH {
+                for y in 0..height {
+                    for x in 0..width / 2 {
                         let x = x as usize;
                         let y = y as usize;
                         let offset = y * pitch + x * 4;
@@ -76,7 +77,7 @@ impl<'a> Console<'a> {
             leader: Text::new(&ttf_context,
                               &mut renderer,
                               "hakka>",
-                              Position::XY(0, CONSOLE_HEIGHT as i32 - FONT_SIZE as i32),
+                              Position::XY(PADDING, height as i32 - FONT_SIZE as i32 - PADDING),
                               FONT_SIZE,
                               FONT_COLOR,
                               FONT_FILE),
@@ -87,11 +88,15 @@ impl<'a> Console<'a> {
             texture: texture,
             backbuffer_texture: backbuffer_texture,
             ttf_context: ttf_context,
+            size: (width / 2, height),
         }
     }
 
     pub fn process(&mut self, event: &Event) {
         match event {
+            &Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+                self.toggle();
+            }
             &Event::TextInput { ref text, .. } => {
                 if self.visible {
                     if text == "`" {
@@ -103,7 +108,7 @@ impl<'a> Console<'a> {
             &Event::MouseWheel { y, .. } => {
                 if self.visible {
                     if self.buffer.len() * FONT_SIZE as usize >
-                       (CONSOLE_HEIGHT - (FONT_SIZE as u32 * 2)) as usize {
+                       (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
                         self.backbuffer_y += y * 2;
                         if self.backbuffer_y < 0 {
                             self.backbuffer_y = 0;
@@ -205,7 +210,7 @@ impl<'a> Console<'a> {
             self.texture.set_blend_mode(BlendMode::Blend);
             renderer.copy(&self.texture,
                       None,
-                      Some(Rect::new(0, 0, CONSOLE_WIDTH, CONSOLE_HEIGHT)))
+                      Some(Rect::new(0, 0, self.size.0, self.size.1)))
                 .unwrap();
             self.render_leader(&mut renderer);
             self.generate_backbuffer_texture(&mut renderer);
@@ -227,11 +232,16 @@ impl<'a> Console<'a> {
             let text = Text::new(&self.ttf_context,
                                  &mut renderer,
                                  &output_text[..],
-                                 Position::XY(60, CONSOLE_HEIGHT as i32 - FONT_SIZE as i32),
+                                 Position::XY(60 + PADDING,
+                                              self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
                                  FONT_SIZE,
                                  FONT_COLOR,
                                  FONT_FILE);
             text.render(&mut renderer);
+
+            // Render the border
+            renderer.set_draw_color(Color::RGBA(255, 255, 255, 255));
+            renderer.draw_rect(Rect::new(0, 0, self.size.0, self.size.1)).unwrap();
         }
     }
 
@@ -242,14 +252,13 @@ impl<'a> Console<'a> {
     fn generate_backbuffer_texture(&mut self, mut renderer: &mut Renderer) {
         let mut font = self.ttf_context.load_font(Path::new(FONT_FILE), FONT_SIZE).unwrap();
         font.set_style(STYLE_BOLD);
-        let mut main_surface = Surface::new(CONSOLE_WIDTH,
-                                            (CONSOLE_HEIGHT - (FONT_SIZE as u32)),
+        let mut main_surface = Surface::new(self.size.0,
+                                            (self.size.1 - (FONT_SIZE as u32)),
                                             PixelFormatEnum::RGBA8888)
             .unwrap();
         let mut counter = 2;
         for line in self.buffer.iter().rev().take(100) {
-            let mut y_pos = CONSOLE_HEIGHT as i32 - (FONT_SIZE as i32 * counter) +
-                            self.backbuffer_y;
+            let mut y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
             if line.trim().len() == 0 {
@@ -261,7 +270,7 @@ impl<'a> Console<'a> {
                 .unwrap();
             surface.blit(None,
                       &mut main_surface,
-                      Some(Rect::new(0, y_pos, CONSOLE_HEIGHT, FONT_SIZE as u32)))
+                      Some(Rect::new(PADDING, y_pos - PADDING, self.size.1, FONT_SIZE as u32)))
                 .unwrap();
         }
         let texture = renderer.create_texture_from_surface(&main_surface)
