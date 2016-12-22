@@ -53,7 +53,7 @@ impl<'a> Console<'a> {
                         let x = x as usize;
                         let y = y as usize;
                         let offset = y * pitch + x * 4;
-                        buffer[offset + 0] = 182;
+                        buffer[offset] = 182;
                         buffer[offset + 1] = 0;
                         buffer[offset + 2] = 0;
                         buffer[offset + 3] = 0;
@@ -67,7 +67,7 @@ impl<'a> Console<'a> {
 
         Console {
             visible: false,
-            leader: Text::new(&ttf_context,
+            leader: Text::new(ttf_context,
                               &mut renderer,
                               "hakka>",
                               Position::XY(PADDING, height as i32 - FONT_SIZE as i32 - PADDING),
@@ -91,11 +91,11 @@ impl<'a> Console<'a> {
     }
 
     pub fn process(&mut self, event: &Event) {
-        match event {
-            &Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
+        match *event {
+            Event::KeyUp { keycode: Option::Some(Keycode::Backquote), .. } => {
                 self.toggle();
             }
-            &Event::TextInput { ref text, .. } => {
+            Event::TextInput { ref text, .. } => {
                 if self.visible {
                     if text == "`" {
                         return;
@@ -103,18 +103,17 @@ impl<'a> Console<'a> {
                     self.add_text(text);
                 }
             }
-            &Event::MouseWheel { y, .. } => {
-                if self.visible {
-                    if self.buffer.len() * FONT_SIZE as usize >
-                       (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
-                        self.backbuffer_y += y * 6;
-                        if self.backbuffer_y < 0 {
-                            self.backbuffer_y = 0;
-                        }
+            Event::MouseWheel { y, .. } => {
+                if self.visible &&
+                   self.buffer.len() * FONT_SIZE as usize >
+                   (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
+                    self.backbuffer_y += y * 6;
+                    if self.backbuffer_y < 0 {
+                        self.backbuffer_y = 0;
                     }
                 }
             }
-            &Event::KeyDown { keycode, .. } => {
+            Event::KeyDown { keycode, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::LCtrl) |
@@ -144,7 +143,7 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyUp { keycode, .. } => {
+            Event::KeyUp { keycode, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::LCtrl) |
@@ -174,7 +173,7 @@ impl<'a> Console<'a> {
 
     pub fn process_command(&mut self) {
         let command = self.input_buffer.clone();
-        if command.len() > 0 {
+        if !command.is_empty() {
             self.command_history.push(command.clone());
             self.last_command = command.clone();
 
@@ -210,7 +209,7 @@ impl<'a> Console<'a> {
     }
 
     pub fn try_process_command(&mut self) -> Option<String> {
-        if self.last_command.len() > 0 {
+        if !self.last_command.is_empty() {
             let cmd = self.last_command.clone();
             self.last_command.clear();
             Some(cmd)
@@ -282,11 +281,9 @@ impl<'a> Console<'a> {
     }
 
     pub fn backspace(&mut self) {
-        if self.visible {
-            if self.cursor_position > 0 {
-                self.input_buffer.remove(self.cursor_position - 1);
-                self.cursor_position -= 1;
-            }
+        if self.visible && self.cursor_position > 0 {
+            self.input_buffer.remove(self.cursor_position - 1);
+            self.cursor_position -= 1;
         }
     }
 
@@ -316,8 +313,8 @@ impl<'a> Console<'a> {
                             FONT_COLOR)
                 .unwrap();
 
-            if self.input_buffer.len() > 0 {
-                let text = Text::new(&self.ttf_context,
+            if !self.input_buffer.is_empty() {
+                let text = Text::new(self.ttf_context,
                                      &mut renderer,
                                      &self.input_buffer[..],
                                      Position::XY(60 + PADDING,
@@ -376,12 +373,12 @@ impl<'a> Console<'a> {
             let y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
-            if line.trim().len() == 0 {
+            if line.trim().is_empty() {
                 continue;
             }
 
             let surface = self.font
-                .render(&line)
+                .render(line)
                 .blended(FONT_COLOR)
                 .unwrap();
             surface.blit(None,
