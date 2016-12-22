@@ -86,8 +86,12 @@ fn main() {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
                         vm.cpu.memory[0x04] = 0;
-                        if let Some(Keycode::Backquote) = keycode {
-                            vm.console.toggle();
+                        match keycode {
+                            Some(Keycode::Backquote) |
+                            Some(Keycode::Backslash) => {
+                                vm.console.toggle();
+                            },
+                            _ => (),
                         }
                     }
                     Event::KeyDown { keycode, .. } => {
