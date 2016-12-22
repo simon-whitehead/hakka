@@ -141,6 +141,14 @@ impl<'a> Console<'a> {
                     self.backspace();
                 }
             }
+            &Event::KeyDown { keycode: Option::Some(Keycode::Delete), .. } => {
+                if self.visible {
+                    if self.cursor_position < self.input_buffer.len() {
+                        self.cursor_position += 1;
+                        self.backspace();
+                    }
+                }
+            }
             _ => (),
         }
     }
