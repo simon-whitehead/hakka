@@ -293,14 +293,13 @@ impl<'a> VirtualMachine<'a> {
             self.console.println(format!(".ORG ${:04X}", segment.address));
             let disassembler = Disassembler::with_offset(segment.address);
             let pairs = disassembler.disassemble_with_addresses(&segment.code);
-            for line in self.highlight_lines(self.cpu.registers.PC as usize,
+            let lines = self.highlight_lines(self.cpu.registers.PC as usize,
                                              pairs,
                                              segment.address,
-                                             false) {
-                self.console.println(format!("{}", line));
-            }
-            self.console.println("");
+                                             false);
+            self.console.print_lines(lines.join(""));
         }
+        self.console.println("");
     }
 
     fn dump_local_disassembly(&mut self) {
@@ -313,9 +312,7 @@ impl<'a> VirtualMachine<'a> {
             let pairs = disassembler.disassemble_with_addresses(&local_segment.code);
             self.highlight_lines(pc, pairs, local_segment.address, true)
         };
-        for line in result {
-            self.console.println(format!("{}", line));
-        }
+        self.console.print_lines(result.join(""));
         self.console.println("");
     }
 
