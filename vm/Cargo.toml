@@ -8,4 +8,4 @@ rs6502 = "0.2.0"
 
 [dependencies.sdl2]
 version = "*"
-features = ["image", "ttf"]
+features = ["image", "ttf", "gfx"]
