@@ -194,11 +194,13 @@ impl<'a> Console<'a> {
 
     pub fn process_command(&mut self) {
         let command = self.input_buffer.clone();
-        self.command_history.push(command.clone());
-        self.last_command = command.clone();
+        if command.len() > 0 {
+            self.command_history.push(command.clone());
+            self.last_command = command.clone();
 
-        if command == "exit" {
-            std::process::exit(0);
+            if command == "exit" {
+                std::process::exit(0);
+            }
         }
     }
 
