@@ -246,11 +246,11 @@ impl<'a> VirtualMachine<'a> {
                         self.console.println("ERR: Value outside addressable range.");
                     }
                 } else {
-                    self.broken = true;
-                    println!("Execution stopped");
+                    self.console.println("ERR: Unable to parse breakpoint address");
                 }
             } else {
-                self.console.println("ERR: Requires 1 argument");
+                self.broken = true;
+                self.console.println("Execution stopped");
             }
         } else if parts[0] == "continue" || parts[0] == "c" {
             self.broken = false;
