@@ -38,6 +38,7 @@ pub struct Console<'a> {
     font: Font<'a>,
     line_ending: bool, // Tracks where the next print call should append to
     ctrl: bool, // Tracks the Ctrl key being pressed
+    shift: bool, // Tracks the Shift key being pressed
 }
 
 impl<'a> Console<'a> {
@@ -87,6 +88,7 @@ impl<'a> Console<'a> {
             font: font,
             line_ending: true,
             ctrl: false,
+            shift: false,
         }
     }
 
@@ -116,6 +118,8 @@ impl<'a> Console<'a> {
                     match keycode { 
                         Some(Keycode::LCtrl) |
                         Some(Keycode::RCtrl) => self.ctrl = true,
+                        Some(Keycode::LShift) |
+                        Some(Keycode::RShift) => self.shift = true,
                         Some(Keycode::C) => {
                             if self.ctrl {
                                 self.input_buffer.push_str("^C");
@@ -146,6 +150,8 @@ impl<'a> Console<'a> {
                     match keycode { 
                         Some(Keycode::LCtrl) |
                         Some(Keycode::RCtrl) => self.ctrl = false,
+                        Some(Keycode::LShift) |
+                        Some(Keycode::RShift) => self.shift = false,
                         Some(Keycode::Up) => {
                             self.history_navigate_back();
                         }
@@ -160,11 +166,13 @@ impl<'a> Console<'a> {
                         }
                         Some(Keycode::Home) => {
                             self.cursor_position = 0;
-                        },
+                        }
                         // Toggle console
                         Some(Keycode::Backquote) |
                         Some(Keycode::Backslash) => {
-                            self.toggle();
+                            if !self.shift {
+                                self.toggle();
+                            }
                         }
                         _ => (),
                     }
