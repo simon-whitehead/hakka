@@ -28,6 +28,7 @@ pub struct Console<'a> {
     input_buffer: String,
     last_command: String,
     command_history: Vec<String>,
+    history_position: usize,
     cursor_position: usize,
     buffer: Vec<String>,
     backbuffer_y: i32,
@@ -93,6 +94,7 @@ impl<'a> Console<'a> {
             input_buffer: "".into(),
             last_command: "".into(),
             command_history: Vec::new(),
+            history_position: 0,
             cursor_position: 0,
             buffer: Vec::new(),
             backbuffer_y: 0,
@@ -128,31 +130,28 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            &Event::KeyUp { keycode: Option::Some(Keycode::Left), .. } => {
+            &Event::KeyUp { keycode, .. } => {
                 if self.visible {
-                    self.cursor_left();
-                }
-            }
-            &Event::KeyUp { keycode: Option::Some(Keycode::Right), .. } => {
-                if self.visible {
-                    self.cursor_right();
-                }
-            }
-            &Event::KeyUp { keycode: Option::Some(Keycode::Return), .. } => {
-                if self.visible {
-                    self.commit();
-                }
-            }
-            &Event::KeyDown { keycode: Option::Some(Keycode::Backspace), .. } => {
-                if self.visible {
-                    self.backspace();
-                }
-            }
-            &Event::KeyDown { keycode: Option::Some(Keycode::Delete), .. } => {
-                if self.visible {
-                    if self.cursor_position < self.input_buffer.len() {
-                        self.cursor_position += 1;
-                        self.backspace();
+                    match keycode { 
+                        Some(Keycode::Left) => {
+                            self.cursor_left();
+                        }
+                        Some(Keycode::Right) => {
+                            self.cursor_right();
+                        }
+                        Some(Keycode::Return) => {
+                            self.commit();
+                        }
+                        Some(Keycode::Backspace) => {
+                            self.backspace();
+                        }
+                        Some(Keycode::Delete) => {
+                            if self.cursor_position < self.input_buffer.len() {
+                                self.cursor_position += 1;
+                                self.backspace();
+                            }
+                        }
+                        _ => (),
                     }
                 }
             }
