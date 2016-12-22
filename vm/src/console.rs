@@ -17,13 +17,13 @@ const BORDER_COLOR: Color = Color::RGBA(255, 255, 255, 64);
 
 const PADDING: i32 = 10;
 
-const FONT_FILE: &'static str = "assets/FantasqueSansMono-Bold.ttf";
 const FONT_COLOR: Color = Color::RGBA(45, 200, 45, 255);
 const FONT_SIZE: u16 = 18;
 
 pub struct Console<'a> {
     pub visible: bool,
 
+    font_file: &'a str,
     leader: Text,
     input_buffer: String,
     last_command: String,
@@ -43,7 +43,10 @@ pub struct Console<'a> {
 
 impl<'a> Console<'a> {
     /// Creates a new empty Console
-    pub fn new(ttf_context: &'a Sdl2TtfContext, mut renderer: &mut Renderer) -> Console<'a> {
+    pub fn new(ttf_context: &'a Sdl2TtfContext,
+               mut renderer: &mut Renderer,
+               font_file: &'a str)
+               -> Console<'a> {
         let (width, height) = renderer.window().unwrap().size();
         let mut texture =
             renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
@@ -63,18 +66,19 @@ impl<'a> Console<'a> {
             })
             .unwrap();
 
-        let mut font = ttf_context.load_font(Path::new(FONT_FILE), FONT_SIZE).unwrap();
+        let mut font = ttf_context.load_font(Path::new(font_file), FONT_SIZE).unwrap();
         font.set_style(STYLE_BOLD);
 
         Console {
             visible: false,
+            font_file: font_file,
             leader: Text::new(ttf_context,
                               &mut renderer,
                               "hakka>",
                               Position::XY(PADDING, height as i32 - FONT_SIZE as i32 - PADDING),
                               FONT_SIZE,
                               FONT_COLOR,
-                              FONT_FILE),
+                              font_file),
             input_buffer: "".into(),
             last_command: "".into(),
             command_history: Vec::new(),
@@ -334,7 +338,7 @@ impl<'a> Console<'a> {
                                                   self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
                                      FONT_SIZE,
                                      FONT_COLOR,
-                                     FONT_FILE);
+                                     self.font_file);
                 text.render(&mut renderer);
             }
 

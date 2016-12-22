@@ -15,6 +15,7 @@ path = "training-1/src/main.rs"
 byteorder = "0.5.3"
 rs6502 = "0.2.0"
 vm = { path = "vm" }
+find_folder = "0.3.0"
 
 [dependencies.sdl2]
 version = "*"

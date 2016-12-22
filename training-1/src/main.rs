@@ -1,4 +1,5 @@
 extern crate byteorder;
+extern crate find_folder;
 extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
@@ -8,6 +9,8 @@ mod ship;
 use std::path::Path;
 
 use byteorder::{ByteOrder, LittleEndian};
+
+use find_folder::Search;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -41,16 +44,22 @@ fn main() {
         .build()
         .unwrap();
 
-    let ship_texture = renderer.load_texture(Path::new("assets/ship.png")).unwrap();
-    let ship_flame_texture = renderer.load_texture(Path::new("assets/ship-flame.png"))
+    let local = Search::Parents(3).for_folder("training-1").unwrap();
+    let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
+
+    let ship_texture = renderer.load_texture(&assets.join("ship.png")).unwrap();
+    let ship_flame_texture = renderer.load_texture(&assets.join("ship-flame.png"))
         .unwrap();
+
+    let font = assets.join("FantasqueSansMono-Bold.ttf");
+
     let finish_text = Text::new(&ttf_context,
                                 &mut renderer,
                                 "FINISH",
                                 Position::HorizontalCenter((window_width / 2) as i32, 25),
                                 56,
                                 Color::RGBA(0, 0, 0, 255),
-                                "assets/FantasqueSansMono-Bold.ttf");
+                                font.to_str().unwrap());
 
     let win_text = Text::new(&ttf_context,
                              &mut renderer,
@@ -58,12 +67,12 @@ fn main() {
                              Position::HorizontalCenter((window_width / 2) as i32, 330),
                              64,
                              Color::RGBA(0, 0, 0, 255),
-                             "assets/FantasqueSansMono-Bold.ttf");
+                             font.to_str().unwrap());
 
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
-    let segments = assemble("training-1/level.asm");
-    let console = Console::new(&ttf_context, &mut renderer);
+    let segments = assemble(local.join("level.asm"));
+    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap());
     let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);
 
@@ -90,7 +99,7 @@ fn main() {
                             Some(Keycode::Backquote) |
                             Some(Keycode::Backslash) => {
                                 vm.console.toggle();
-                            },
+                            }
                             _ => (),
                         }
                     }

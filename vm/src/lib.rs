@@ -1,3 +1,4 @@
+extern crate find_folder;
 extern crate rs6502;
 extern crate sdl2;
 

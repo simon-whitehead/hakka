@@ -5,6 +5,7 @@ authors = ["Simon Whitehead <chemnova@gmail.com>"]
 
 [dependencies]
 rs6502 = "0.2.0"
+find_folder = "0.3.0"
 
 [dependencies.sdl2]
 version = "*"
