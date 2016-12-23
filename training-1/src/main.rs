@@ -98,8 +98,13 @@ fn main() {
                         }
                     }
                     Event::Quit { .. } => break 'running,
-                    Event::KeyUp { .. } => {
-                        vm.cpu.memory[0x04] = 0;
+                    Event::KeyUp { keycode, .. } => {
+                        match keycode {
+                            Some(Keycode::Up) | Some(Keycode::Down) => {
+                                vm.cpu.memory[0x04] = 0;
+                            }
+                            _ => (),
+                        }
                     }
                     Event::KeyDown { keycode, .. } => {
                         if let Some(Keycode::Escape) = keycode {
