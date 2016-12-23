@@ -128,7 +128,7 @@ impl<'a> Console<'a> {
                         Some(Keycode::C) => {
                             if self.ctrl {
                                 self.input_buffer.push_str("^C");
-                                self.commit(false);
+                                self.commit();
                             }
                         }
                         Some(Keycode::Left) => {
@@ -164,7 +164,7 @@ impl<'a> Console<'a> {
                             self.history_navigate_forward();
                         }
                         Some(Keycode::Return) => {
-                            self.commit(true);
+                            self.commit();
                         }
                         Some(Keycode::End) => {
                             self.cursor_position = self.input_buffer.len();
@@ -269,11 +269,9 @@ impl<'a> Console<'a> {
         self.cursor_position += 1;
     }
 
-    pub fn commit(&mut self, execute: bool) {
+    pub fn commit(&mut self) {
         self.buffer.push(format!("hakka> {}", self.input_buffer.clone()));
-        if execute {
-            self.process_command();
-        }
+        self.process_command();
         self.input_buffer.clear();
         self.cursor_position = 0;
         self.history_position = self.command_history.len();
