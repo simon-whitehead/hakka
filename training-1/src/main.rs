@@ -145,21 +145,29 @@ fn main() {
             sdl_context.timer().unwrap().delay(FPS_STEP - delta);
         } else {
             vm.cycle();
-            if !vm.cpu.flags.interrupt_disabled {
+
+            // Rendering only the background when interrupts are disabled results in a horrible
+            // flickering; therefore only render when we're either in single stepping mode or
+            // interrupts are enabled
+            if vm.in_stepping_mode() || !vm.cpu.flags.interrupt_disabled {
                 renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 renderer.clear();
-                if level_complete {
-                    draw_passed_background(&mut renderer);
-                    win_text.render(&mut renderer);
-                }
-                draw_finish_background(&mut renderer);
-                finish_text.render(&mut renderer);
-                if vm.cpu.memory[0x07] > 0 {
-                    ship.render_flame(&mut renderer);
-                }
-                ship.render(&mut renderer);
-                if ship.y <= 0x8C {
-                    level_complete = true;
+
+                // Render complete game screen only if interrupts are enabled
+                if !vm.cpu.flags.interrupt_disabled {
+                    if level_complete {
+                        draw_passed_background(&mut renderer);
+                        win_text.render(&mut renderer);
+                    }
+                    draw_finish_background(&mut renderer);
+                    finish_text.render(&mut renderer);
+                    if vm.cpu.memory[0x07] > 0 {
+                        ship.render_flame(&mut renderer);
+                    }
+                    ship.render(&mut renderer);
+                    if ship.y <= 0x8C {
+                        level_complete = true;
+                    }
                 }
                 vm.render(&mut renderer);
                 renderer.present();
