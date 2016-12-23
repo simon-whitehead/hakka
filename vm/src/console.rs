@@ -3,7 +3,7 @@ use std::path::Path;
 
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
-use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::keyboard::*;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
@@ -117,14 +117,16 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            Event::KeyDown { keycode, scancode, timestamp, .. } => {
+            Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
                 if self.visible {
-                    // The 'Grave' scancode coresponds to the key in the top-left corner of the
-                    // keyboard, bellow escape, on (hopefully) all keyboard layouts.
-                    if let Some(Scancode::Grave) = scancode {
-                        self.toggle(timestamp);
-                        return;
-                    } 
+                    if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD) {
+                        // The 'Grave' scancode coresponds to the key in the top-left corner of the
+                        // keyboard, bellow escape, on (hopefully) all keyboard layouts.
+                        if let Some(Scancode::Grave) = scancode {
+                            self.toggle(timestamp);
+                            return;
+                        } 
+                    }
 
                     match keycode { 
                         Some(Keycode::LCtrl) |
