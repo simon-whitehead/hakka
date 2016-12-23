@@ -92,16 +92,14 @@ fn main() {
                 vm.console.process(&event);
             } else {
                 match event {
-                    Event::Quit { .. } => break 'running,
-                    Event::KeyUp { keycode, .. } => {
-                        vm.cpu.memory[0x04] = 0;
-                        match keycode {
-                            Some(Keycode::Backquote) |
-                            Some(Keycode::Backslash) => {
-                                vm.console.toggle();
-                            }
-                            _ => (),
+                    Event::TextInput { ref text, .. } => {
+                        if text == "`" || text == "\\" {
+                            vm.console.toggle();
                         }
+                    }
+                    Event::Quit { .. } => break 'running,
+                    Event::KeyUp { .. } => {
+                        vm.cpu.memory[0x04] = 0;
                     }
                     Event::KeyDown { keycode, .. } => {
                         if let Some(Keycode::Escape) = keycode {

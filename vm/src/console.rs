@@ -101,6 +101,7 @@ impl<'a> Console<'a> {
             Event::TextInput { ref text, .. } => {
                 if self.visible {
                     if text == "`" || text == "\\" {
+                        self.toggle();
                         return;
                     }
                     self.add_text(text);
@@ -170,13 +171,6 @@ impl<'a> Console<'a> {
                         }
                         Some(Keycode::Home) => {
                             self.cursor_position = 0;
-                        }
-                        // Toggle console
-                        Some(Keycode::Backquote) |
-                        Some(Keycode::Backslash) => {
-                            if !self.shift {
-                                self.toggle();
-                            }
                         }
                         _ => (),
                     }
