@@ -323,6 +323,7 @@ impl<'a> VirtualMachine<'a> {
             self.console.wrap_line();
             addr += 0x08;
         }
+        self.console.println("");
     }
 
     pub fn dump_memory(&mut self) {
@@ -336,15 +337,15 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn dump_memory_range(&mut self, start: u16, end: u16) {
-        self.console.println("");
         let start = start as usize;
         let end = end as usize;
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
             for b in chunk {
                 self.console.print(format!("{:02X} ", *b));
             }
-            self.console.println("");
+            self.console.wrap_line();
         }
+        self.console.println("");
     }
 
     fn dump_registers(&mut self) {
