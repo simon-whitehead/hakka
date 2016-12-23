@@ -233,6 +233,8 @@ impl<'a> VirtualMachine<'a> {
             }
         } else if parts[0] == "registers" || parts[0] == "reg" {
             self.dump_registers();
+        } else if parts[0] == "flags" {
+            self.dump_flags();
         } else if parts[0] == "break" || parts[0] == "b" {
             // 1 argument assumes 1 memory "page"
             if parts.len() == 2 {
@@ -361,6 +363,19 @@ impl<'a> VirtualMachine<'a> {
         self.console.println(format!("S: {} ({:04X})",
                                      self.cpu.stack.pointer,
                                      self.cpu.stack.pointer));
+    }
+
+    fn dump_flags(&mut self) {
+        self.console.println("");
+        self.console.println(format!("Carry: {}", self.cpu.flags.carry));
+        self.console.println(format!("Zero: {}", self.cpu.flags.zero));
+        self.console.println(format!("Interrupts disabled: {}", self.cpu.flags.interrupt_disabled));
+        self.console.println(format!("Decimal mode: {}", self.cpu.flags.decimal));
+        self.console.println(format!("Break: {}", self.cpu.flags.breakpoint));
+        self.console.println(format!("Overflow: {}", self.cpu.flags.overflow));
+        self.console.println(format!("Sign: {}", self.cpu.flags.sign));
+        self.console.println(format!("Unused: {}", self.cpu.flags.unused));
+        self.console.println("");
     }
 
     fn get_local_segment(&self, pc: usize) -> &CodeSegment {
