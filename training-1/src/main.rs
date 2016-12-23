@@ -13,7 +13,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use find_folder::Search;
 
 use sdl2::event::Event;
-use sdl2::keyboard::*;
+use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -101,11 +101,9 @@ fn main() {
                             _ => (),
                         }
                     }
-                    Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
-                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD) {
-                            if let Some(Scancode::Grave) = scancode {
-                                vm.console.toggle(timestamp);
-                            }
+                    Event::KeyDown { keycode, scancode, timestamp, .. } => {
+                        if let Some(Scancode::Grave) = scancode {
+                            vm.console.toggle(timestamp);
                         }
 
                         match keycode {
