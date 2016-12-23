@@ -13,7 +13,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use find_folder::Search;
 
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::*;
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -92,11 +92,6 @@ fn main() {
                 vm.console.process(&event);
             } else {
                 match event {
-                    Event::TextInput { ref text, .. } => {
-                        if text == "`" || text == "\\" {
-                            vm.console.toggle();
-                        }
-                    }
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
                         match keycode {
@@ -106,13 +101,24 @@ fn main() {
                             _ => (),
                         }
                     }
-                    Event::KeyDown { keycode, .. } => {
-                        if let Some(Keycode::Escape) = keycode {
-                            break 'running;
-                        } else if let Some(Keycode::Up) = keycode {
-                            vm.cpu.memory[0x04] = 38;
-                        } else if let Some(Keycode::Down) = keycode {
-                            vm.cpu.memory[0x04] = 40;
+                    Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
+                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD) {
+                            if let Some(Scancode::Grave) = scancode {
+                                vm.console.toggle(timestamp);
+                            }
+                        }
+
+                        match keycode {
+                            Some(Keycode::Escape) => break 'running,
+
+                            //Movement
+                            Some(Keycode::Up) => {
+                                vm.cpu.memory[0x04] = 38;
+                            },
+                            Some(Keycode::Down) => {
+                                vm.cpu.memory[0x04]  = 40;
+                            },
+                            _ => (),
                         }
                     }
                     _ => (),
