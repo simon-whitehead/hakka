@@ -216,7 +216,7 @@ impl<'a> Console<'a> {
     }
 
     fn history_navigate_forward(&mut self) {
-        if self.history_position < self.command_history.len() - 1 {
+        if self.command_history.len() > 0 && self.history_position < self.command_history.len() - 1 {
             self.input_buffer = self.command_history[self.history_position + 1].clone();
             self.cursor_position = self.input_buffer.len();
             if self.history_position < self.command_history.len() {
