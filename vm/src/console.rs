@@ -277,7 +277,7 @@ impl<'a> Console<'a> {
 
     pub fn add_text(&mut self, input: &str) {
         self.input_buffer.insert(self.cursor_position, input.chars().next().unwrap());
-        self.cursor_position += 1;
+        self.cursor_position += input.len();
     }
 
     pub fn commit(&mut self) {
@@ -291,19 +291,28 @@ impl<'a> Console<'a> {
     pub fn cursor_left(&mut self) {
         if self.cursor_position > 0 {
             self.cursor_position -= 1;
+            while !self.input_buffer.is_char_boundary(self.cursor_position) {
+                self.cursor_position -= 1;
+            }
         }
     }
 
     pub fn cursor_right(&mut self) {
         if self.cursor_position < self.input_buffer.len() {
             self.cursor_position += 1;
+            while !self.input_buffer.is_char_boundary(self.cursor_position) {
+                self.cursor_position += 1;
+            }
         }
     }
 
     pub fn backspace(&mut self) {
         if self.visible && self.cursor_position > 0 {
-            self.input_buffer.remove(self.cursor_position - 1);
             self.cursor_position -= 1;
+            while !self.input_buffer.is_char_boundary(self.cursor_position) {
+                self.cursor_position -= 1;
+            }
+            self.input_buffer.remove(self.cursor_position);
         }
     }
 
