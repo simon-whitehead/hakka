@@ -3,7 +3,7 @@ use std::path::Path;
 
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
-use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
@@ -22,7 +22,6 @@ const FONT_SIZE: u16 = 18;
 
 pub struct Console<'a> {
     pub visible: bool,
-    visible_start_time: u32, // Used to ensure that the KeyDown event that opens the console does not trigger text input
 
     font_file: &'a str,
     leader: Text,
@@ -72,8 +71,6 @@ impl<'a> Console<'a> {
 
         Console {
             visible: false,
-            visible_start_time: 0,
-
             font_file: font_file,
             leader: Text::new(ttf_context,
                               &mut renderer,
@@ -101,8 +98,12 @@ impl<'a> Console<'a> {
 
     pub fn process(&mut self, event: &Event) {
         match *event {
-            Event::TextInput { ref text, timestamp, .. } => {
-                if self.visible && timestamp != self.visible_start_time {
+            Event::TextInput { ref text, .. } => {
+                if self.visible {
+                    if text == "`" || text == "\\" {
+                        self.toggle();
+                        return;
+                    }
                     self.add_text(text);
                 }
             }
@@ -117,15 +118,8 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            Event::KeyDown { keycode, scancode, timestamp, .. } => {
+            Event::KeyDown { keycode, .. } => {
                 if self.visible {
-                    // The 'Grave' scancode coresponds to the key in the top-left corner of the
-                    // keyboard, bellow escape, on (hopefully) all keyboard layouts.
-                    if let Some(Scancode::Grave) = scancode {
-                        self.toggle(timestamp);
-                        return;
-                    } 
-
                     match keycode { 
                         Some(Keycode::LCtrl) |
                         Some(Keycode::RCtrl) => self.ctrl = true,
@@ -266,11 +260,8 @@ impl<'a> Console<'a> {
     }
 
     /// Toggles the visibility of the Console
-    pub fn toggle(&mut self, time: u32) {
+    pub fn toggle(&mut self) {
         self.visible = !self.visible;
-        if self.visible {
-            self.visible_start_time = time;
-        }
     }
 
     pub fn add_text(&mut self, input: &str) {
