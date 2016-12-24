@@ -290,8 +290,8 @@ impl<'a> VirtualMachine<'a> {
             self.monitor.enabled = true;
         }
     }
-    
-    pub fn in_stepping_mode(&self) -> bool {
+
+    pub fn is_debugging(&self) -> bool {
         self.broken
     }
 

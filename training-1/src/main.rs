@@ -95,14 +95,16 @@ fn main() {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
                         match keycode {
-                            Some(Keycode::Up) | Some(Keycode::Down) => {
+                            Some(Keycode::Up) |
+                            Some(Keycode::Down) => {
                                 vm.cpu.memory[0x04] = 0;
                             }
                             _ => (),
                         }
                     }
                     Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
-                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD) {
+                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
+                                        RSHIFTMOD) {
                             if let Some(Scancode::Grave) = scancode {
                                 vm.console.toggle(timestamp);
                             }
@@ -111,13 +113,13 @@ fn main() {
                         match keycode {
                             Some(Keycode::Escape) => break 'running,
 
-                            //Movement
+                            // Movement
                             Some(Keycode::Up) => {
                                 vm.cpu.memory[0x04] = 38;
-                            },
+                            }
                             Some(Keycode::Down) => {
-                                vm.cpu.memory[0x04]  = 40;
-                            },
+                                vm.cpu.memory[0x04] = 40;
+                            }
                             _ => (),
                         }
                     }
@@ -149,7 +151,7 @@ fn main() {
             // Rendering only the background when interrupts are disabled results in a horrible
             // flickering; therefore only render when we're either in single stepping mode or
             // interrupts are enabled
-            if vm.in_stepping_mode() || !vm.cpu.flags.interrupt_disabled {
+            if vm.is_debugging() || !vm.cpu.flags.interrupt_disabled {
                 renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 renderer.clear();
 
