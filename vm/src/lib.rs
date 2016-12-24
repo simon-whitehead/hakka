@@ -290,6 +290,10 @@ impl<'a> VirtualMachine<'a> {
             self.monitor.enabled = true;
         }
     }
+    
+    pub fn in_stepping_mode(&self) -> bool {
+        self.broken
+    }
 
     fn dump_disassembly(&mut self) {
         self.console.println("");
