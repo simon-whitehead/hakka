@@ -22,7 +22,7 @@ const FONT_SIZE: u16 = 18;
 
 pub struct Console<'a> {
     pub visible: bool,
-    visible_start_time: u32, // Used to ensure that the KeyDown event that opens the console does not trigger text input
+    visible_start_time: u32, /* Used to ensure that the KeyDown event that opens the console does not trigger text input */
 
     font_file: &'a str,
     leader: Text,
@@ -102,7 +102,7 @@ impl<'a> Console<'a> {
     pub fn process(&mut self, event: &Event) {
         match *event {
             Event::TextInput { ref text, timestamp, .. } => {
-                if self.visible && timestamp != self.visible_start_time {
+                if self.visible && timestamp > self.visible_start_time + 50 {
                     self.add_text(text);
                 }
             }
@@ -119,13 +119,14 @@ impl<'a> Console<'a> {
             }
             Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
                 if self.visible {
-                    if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD) {
+                    if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
+                                          RSHIFTMOD) {
                         // The 'Grave' scancode coresponds to the key in the top-left corner of the
-                        // keyboard, bellow escape, on (hopefully) all keyboard layouts.
+                        // keyboard, below escape, on (hopefully) all keyboard layouts.
                         if let Some(Scancode::Grave) = scancode {
                             self.toggle(timestamp);
                             return;
-                        } 
+                        }
                     }
 
                     match keycode { 
@@ -216,7 +217,8 @@ impl<'a> Console<'a> {
     }
 
     fn history_navigate_forward(&mut self) {
-        if self.command_history.len() > 0 && self.history_position < self.command_history.len() - 1 {
+        if self.command_history.len() > 0 &&
+           self.history_position < self.command_history.len() - 1 {
             self.input_buffer = self.command_history[self.history_position + 1].clone();
             self.cursor_position = self.input_buffer.len();
             if self.history_position < self.command_history.len() {
