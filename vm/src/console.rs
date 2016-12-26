@@ -414,7 +414,8 @@ impl<'a> Console<'a> {
                                             PixelFormatEnum::RGBA8888)
             .unwrap();
         let mut counter = 2;
-        for line in self.buffer.iter().rev().take(100) {
+        // TODO: Make the line render limit here configurable
+        for line in self.buffer.iter().rev().take(200) {
             let y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
