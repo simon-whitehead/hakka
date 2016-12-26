@@ -130,7 +130,7 @@ impl<'a> Console<'a> {
                                           RSHIFTMOD) {
                         // The 'Grave' scancode coresponds to the key in the top-left corner of the
                         // keyboard, below escape, on (hopefully) all keyboard layouts.
-                        if scancode.is_some() && scancode.unwrap() == self.config.get_scancode() {
+                        if scancode == Some(self.config.get_scancode()) {
                             self.toggle(timestamp);
                             return;
                         }

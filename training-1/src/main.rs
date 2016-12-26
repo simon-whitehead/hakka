@@ -125,7 +125,7 @@ fn main() {
                     Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
                         if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
                                         RSHIFTMOD) {
-                            if scancode.is_some() && scancode.unwrap() == config.get_scancode() {
+                            if scancode == Some(config.get_scancode()) {
                                 vm.console.toggle(timestamp);
                             }
                         }
