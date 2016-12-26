@@ -12,6 +12,7 @@ use sdl2::ttf::{Font, Sdl2TtfContext, STYLE_BOLD};
 
 use position::Position;
 use text::Text;
+use config::Configuration;
 
 const BORDER_COLOR: Color = Color::RGBA(255, 255, 255, 64);
 
@@ -23,6 +24,8 @@ const FONT_SIZE: u16 = 18;
 pub struct Console<'a> {
     pub visible: bool,
     visible_start_time: u32, /* Used to ensure that the KeyDown event that opens the console does not trigger text input */
+
+    config: &'a Configuration,
 
     font_file: &'a str,
     leader: Text,
@@ -46,8 +49,10 @@ impl<'a> Console<'a> {
     /// Creates a new empty Console
     pub fn new(ttf_context: &'a Sdl2TtfContext,
                mut renderer: &mut Renderer,
-               font_file: &'a str)
+               font_file: &'a str,
+               config: &'a Configuration)
                -> Console<'a> {
+
         let (width, height) = renderer.window().unwrap().size();
         let mut texture =
             renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
@@ -73,6 +78,8 @@ impl<'a> Console<'a> {
         Console {
             visible: false,
             visible_start_time: 0,
+
+            config: config,
 
             font_file: font_file,
             leader: Text::new(ttf_context,
@@ -123,7 +130,7 @@ impl<'a> Console<'a> {
                                           RSHIFTMOD) {
                         // The 'Grave' scancode coresponds to the key in the top-left corner of the
                         // keyboard, below escape, on (hopefully) all keyboard layouts.
-                        if let Some(Scancode::Grave) = scancode {
+                        if scancode.is_some() && scancode.unwrap() == self.config.get_scancode() {
                             self.toggle(timestamp);
                             return;
                         }

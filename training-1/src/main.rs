@@ -92,7 +92,7 @@ fn main() {
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
     let segments = assemble(local.join("level.asm"));
-    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap());
+    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap(), &config);
     let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);
 
