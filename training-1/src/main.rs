@@ -1,16 +1,21 @@
 extern crate byteorder;
 extern crate find_folder;
+extern crate app_dirs;
+extern crate rustc_serialize;
 extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
 
 mod ship;
+mod config;
 
 use std::path::Path;
 
 use byteorder::{ByteOrder, LittleEndian};
 
 use find_folder::Search;
+
+use app_dirs::{AppInfo, AppDataType};
 
 use sdl2::event::Event;
 use sdl2::keyboard::*;
@@ -22,9 +27,26 @@ use sdl2::render::{Renderer, TextureQuery};
 use rs6502::{Assembler, CodeSegment, Cpu};
 use vm::{Console, Position, Text, VirtualMachine};
 
+use config::*;
+
 const FPS_STEP: u32 = 1000 / 60;
+const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
+const CONFIG_FILE: &'static str = "config.json";
 
 fn main() {
+    let config_root = app_dirs::app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
+    let config_file = {
+        let mut config_file = config_root.clone();
+        config_file.push(CONFIG_FILE);
+        config_file
+    };
+
+    if !config_file.exists() {
+        let default_config = Configuration::default();
+        default_config.store(&config_file).unwrap();
+    }
+
+    let config = Configuration::load(&config_file).unwrap();
 
     let window_width = 1280;
     let window_height = 720;
@@ -105,7 +127,7 @@ fn main() {
                     Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
                         if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
                                         RSHIFTMOD) {
-                            if let Some(Scancode::Grave) = scancode {
+                            if scancode.is_some() && scancode.unwrap() == config.get_scancode() {
                                 vm.console.toggle(timestamp);
                             }
                         }
