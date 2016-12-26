@@ -1,3 +1,4 @@
+
 extern crate byteorder;
 extern crate find_folder;
 extern crate app_dirs;
@@ -7,7 +8,6 @@ extern crate sdl2;
 extern crate vm;
 
 mod ship;
-mod config;
 
 use std::path::Path;
 
@@ -25,9 +25,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Console, Position, Text, VirtualMachine};
-
-use config::*;
+use vm::{Console, Position, Text, VirtualMachine, Configuration};
 
 const FPS_STEP: u32 = 1000 / 60;
 const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
