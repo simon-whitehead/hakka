@@ -159,7 +159,7 @@ impl<'a> Console<'a> {
                     }
                 }
             }
-            Event::KeyUp { keycode, .. } => {
+            Event::KeyUp { keycode, timestamp, .. } => {
                 if self.visible {
                     match keycode { 
                         Some(Keycode::LCtrl) |
@@ -167,10 +167,24 @@ impl<'a> Console<'a> {
                         Some(Keycode::LShift) |
                         Some(Keycode::RShift) => self.shift = false,
                         Some(Keycode::Up) => {
-                            self.history_navigate_back();
+                            // Special check that an automatic console toggle
+                            // does not cause history navigation when holding the
+                            // up arrow.
+                            if self.visible_start_time > 0 {
+                                self.history_navigate_back();
+                            } else {
+                                self.visible_start_time = timestamp;
+                            }
                         }
                         Some(Keycode::Down) => {
-                            self.history_navigate_forward();
+                            // Special check that an automatic console toggle
+                            // does not cause history navigation when holding the
+                            // down arrow.
+                            if self.visible_start_time > 0 {
+                                self.history_navigate_forward();
+                            } else {
+                                self.visible_start_time = timestamp;
+                            }
                         }
                         Some(Keycode::Return) => {
                             self.commit();
