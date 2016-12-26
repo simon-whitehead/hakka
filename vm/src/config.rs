@@ -21,11 +21,10 @@ impl Configuration {
     }
 
     pub fn store(&self, target: &Path) -> Result<(), ConfigError> {
-        let encoded = json::encode(&self)?;
-
+        let encoded = json::as_pretty_json(&self);
         let mut file = File::create(target)?;
         write!(file, "{}", encoded)?;
-
+        writeln!(file, "")?; // End file with newline
         Ok(())
     }
 
