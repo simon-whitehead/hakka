@@ -11,6 +11,8 @@ Requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
 
 ## How to play
 
+Toggle the in-game Console via the Backtick/Grave/Tilde key (`~` on English keyboards. The key _under_ escape on non-English keyboards).
+
 (There is an in-game `help` command which gives a basic overview of the available commands)
 
 The goal of the training level is simple. Fly the ship up to the finish line:
