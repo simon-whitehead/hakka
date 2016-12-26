@@ -5,6 +5,8 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, Texture, TextureQuery};
 use sdl2::ttf::{Sdl2TtfContext, STYLE_BOLD};
 
+use position::Position;
+
 pub struct Text {
     x: i32,
     y: i32,
@@ -17,8 +19,7 @@ impl Text {
     pub fn new<S, P>(ttf_context: &Sdl2TtfContext,
                      renderer: &mut Renderer,
                      text: S,
-                     x: i32,
-                     y: i32,
+                     position: Position,
                      font_size: u16,
                      color: Color,
                      path: P)
@@ -35,6 +36,11 @@ impl Text {
             .unwrap();
 
         let TextureQuery { width, height, .. } = texture.query();
+
+        let (x, y) = match position {
+            Position::HorizontalCenter(x, y) => (x - width as i32 / 2, y),
+            Position::XY(x, y) => (x, y),
+        };
 
         Text {
             x: x,

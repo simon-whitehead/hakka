@@ -1,98 +1,137 @@
+extern crate byteorder;
+extern crate find_folder;
 extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
 
 mod ship;
-mod text;
 
 use std::path::Path;
 
+use byteorder::{ByteOrder, LittleEndian};
+
+use find_folder::Search;
+
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::*;
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::Renderer;
+use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::VirtualMachine;
+use vm::{Console, Position, Text, VirtualMachine};
 
 const FPS_STEP: u32 = 1000 / 60;
-const WINDOW_WIDTH: u32 = 400;
-const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
 
-    let cpu = init_cpu();
-    let segments = assemble("level.asm");
-    let mut vm = VirtualMachine::new(cpu, 150);
-    vm.load_code_segments(segments);
+    let window_width = 1280;
+    let window_height = 720;
 
     let sdl_context = sdl2::init().unwrap();
     let ttf_context = sdl2::ttf::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("hakka", WINDOW_WIDTH, WINDOW_HEIGHT)
-        .position_centered()
+    let window = video_subsystem.window("hakka", window_width, window_height)
         .build()
         .unwrap();
+
+    let (window_width, _) = window.size();
 
     let mut renderer = window.renderer()
         .accelerated()
         .build()
         .unwrap();
 
-    let ship_texture = renderer.load_texture(Path::new("ship.png")).unwrap();
-    let ship_flame_texture = renderer.load_texture(Path::new("ship-flame.png")).unwrap();
-    let finish_text = text::Text::new(&ttf_context,
-                                      &mut renderer,
-                                      "FINISH",
-                                      100,
-                                      25,
-                                      56,
-                                      Color::RGBA(0, 0, 0, 255),
-                                      "FantasqueSansMono-Bold.ttf");
+    let local = Search::Parents(3).for_folder("training-1").unwrap();
+    let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
 
-    let win_text = text::Text::new(&ttf_context,
-                                   &mut renderer,
-                                   "PASSED",
-                                   100,
-                                   330,
-                                   64,
-                                   Color::RGBA(0, 0, 0, 255),
-                                   "FantasqueSansMono-Bold.ttf");
+    let ship_texture = renderer.load_texture(&assets.join("ship.png")).unwrap();
+    let ship_flame_texture = renderer.load_texture(&assets.join("ship-flame.png"))
+        .unwrap();
+
+    let font = assets.join("FantasqueSansMono-Bold.ttf");
+
+    let finish_text = Text::new(&ttf_context,
+                                &mut renderer,
+                                "FINISH",
+                                Position::HorizontalCenter((window_width / 2) as i32, 25),
+                                56,
+                                Color::RGBA(0, 0, 0, 255),
+                                font.to_str().unwrap());
+
+    let win_text = Text::new(&ttf_context,
+                             &mut renderer,
+                             "PASSED",
+                             Position::HorizontalCenter((window_width / 2) as i32, 330),
+                             64,
+                             Color::RGBA(0, 0, 0, 255),
+                             font.to_str().unwrap());
+
+    let TextureQuery { width: ship_width, .. } = ship_texture.query();
+    let cpu = init_cpu(&mut renderer, ship_width);
+    let segments = assemble(local.join("level.asm"));
+    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap());
+    let mut vm = VirtualMachine::new(cpu, 150, console);
+    vm.load_code_segments(segments);
 
     let mut events = sdl_context.event_pump().unwrap();
 
     let mut level_complete = false;
-    let mut ship = ship::Ship::new(ship_texture, ship_flame_texture);
+    let mut ship = ship::Ship::new(ship_texture,
+                                   ship_flame_texture,
+                                   Position::HorizontalCenter((window_width / 2) as i32, 500));
     let mut last_fps = 0;
     let mut monitor_last = 0;
 
     'running: loop {
 
         for event in events.poll_iter() {
-            match event {
-                Event::Quit { .. } => break 'running,
-                Event::KeyDown { keycode: Option::Some(Keycode::Up), .. } => {
-                    vm.cpu.memory[0x04] = 38;
+            if vm.console.visible {
+                vm.console.process(&event);
+            } else {
+                match event {
+                    Event::Quit { .. } => break 'running,
+                    Event::KeyUp { keycode, .. } => {
+                        match keycode {
+                            Some(Keycode::Up) |
+                            Some(Keycode::Down) => {
+                                vm.cpu.memory[0x04] = 0;
+                            }
+                            _ => (),
+                        }
+                    }
+                    Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
+                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
+                                        RSHIFTMOD) {
+                            if let Some(Scancode::Grave) = scancode {
+                                vm.console.toggle(timestamp);
+                            }
+                        }
+
+                        match keycode {
+                            Some(Keycode::Escape) => break 'running,
+
+                            // Movement
+                            Some(Keycode::Up) => {
+                                vm.cpu.memory[0x04] = 38;
+                            }
+                            Some(Keycode::Down) => {
+                                vm.cpu.memory[0x04] = 40;
+                            }
+                            _ => (),
+                        }
+                    }
+                    _ => (),
                 }
-                Event::KeyDown { keycode: Option::Some(Keycode::Down), .. } => {
-                    vm.cpu.memory[0x04] = 40;
-                }
-                Event::KeyUp { keycode: Option::Some(Keycode::Up), .. } => {
-                    vm.cpu.memory[0x04] = 0;
-                }
-                Event::KeyUp { keycode: Option::Some(Keycode::Down), .. } => {
-                    vm.cpu.memory[0x04] = 0;
-                }
-                Event::KeyDown { keycode: Option::Some(Keycode::Escape), .. } => break 'running,
-                _ => (),
             }
         }
 
         if !level_complete {
-            vm.try_execute_command();
+            if let Some(cmd) = vm.console.try_process_command() {
+                vm.execute_command(cmd);
+            }
             ship.process(&vm.cpu.memory[..]);
 
             // Pull the ship back so it can't go past a certain spot
@@ -108,21 +147,31 @@ fn main() {
             sdl_context.timer().unwrap().delay(FPS_STEP - delta);
         } else {
             vm.cycle();
-            if !vm.cpu.flags.interrupt_disabled {
+
+            // Rendering only the background when interrupts are disabled results in a horrible
+            // flickering; therefore only render when we're either in single stepping mode or
+            // interrupts are enabled
+            if vm.is_debugging() || !vm.cpu.flags.interrupt_disabled {
+                renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 renderer.clear();
-                if level_complete {
-                    draw_passed_background(&mut renderer);
-                    win_text.render(&mut renderer);
+
+                // Render complete game screen only if interrupts are enabled
+                if !vm.cpu.flags.interrupt_disabled {
+                    if level_complete {
+                        draw_passed_background(&mut renderer);
+                        win_text.render(&mut renderer);
+                    }
+                    draw_finish_background(&mut renderer);
+                    finish_text.render(&mut renderer);
+                    if vm.cpu.memory[0x07] > 0 {
+                        ship.render_flame(&mut renderer);
+                    }
+                    ship.render(&mut renderer);
+                    if ship.y <= 0x8C {
+                        level_complete = true;
+                    }
                 }
-                draw_finish_background(&mut renderer);
-                finish_text.render(&mut renderer);
-                if vm.cpu.memory[0x07] > 0 {
-                    ship.render_flame(&mut renderer);
-                }
-                ship.render(&mut renderer);
-                if ship.y <= 0x8C {
-                    level_complete = true;
-                }
+                vm.render(&mut renderer);
                 renderer.present();
                 last_fps = now;
             }
@@ -144,11 +193,13 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu() -> Cpu {
+fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
     let mut cpu = Cpu::new();
     cpu.flags.interrupt_disabled = false;
 
-    cpu.memory[0x00] = 0x90;
+    LittleEndian::write_u16(&mut cpu.memory[0..],
+                            renderer.window().unwrap().size().0 as u16 / 2 -
+                            (ship_width as u16 / 2));
     cpu.memory[0x02] = 0xFF;
     cpu.memory[0x03] = 0x01;
     cpu.memory[0x05] = 0x05;
@@ -158,8 +209,9 @@ fn init_cpu() -> Cpu {
 }
 
 fn draw_text_background(renderer: &mut Renderer, color: Color, y: i32) {
+    let width = renderer.window().unwrap().size().0;
     renderer.set_draw_color(color);
-    renderer.fill_rect(Rect::new(0, y, WINDOW_WIDTH, 120)).unwrap();
+    renderer.fill_rect(Rect::new(0, y, width, 120)).unwrap();
 }
 
 fn draw_finish_background(renderer: &mut Renderer) {
