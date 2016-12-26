@@ -25,7 +25,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Console, Position, Text, VirtualMachine, Configuration};
+use vm::{Console, Position, Text, VirtualMachine, Configuration, ConfigError};
 
 const FPS_STEP: u32 = 1000 / 60;
 const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
@@ -44,7 +44,23 @@ fn main() {
         default_config.store(&config_file).unwrap();
     }
 
-    let config = Configuration::load(&config_file).unwrap();
+    let config = match Configuration::load(&config_file) {
+        Err(err) => match err {
+            ConfigError::DeserializationError(err) => {
+                // Something happend during deserialization, indicating that the file has invalid content
+                println!("config.json could not be deserialized. Replacing with default ({:?})", err);
+                let default_config = Configuration::default();
+                default_config.store(&config_file).unwrap();
+                default_config
+            },
+            _ => {
+                panic!("Unable to load the configuration file! {:?}", err);
+            }
+        },
+        Ok(config) => {
+            config
+        }
+    };
 
     let window_width = 1280;
     let window_height = 720;
