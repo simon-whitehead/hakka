@@ -1,6 +1,8 @@
+
 extern crate find_folder;
 extern crate rs6502;
 extern crate rustc_serialize;
+extern crate app_dirs;
 extern crate sdl2;
 
 mod console;
@@ -14,7 +16,6 @@ use sdl2::render::Renderer;
 pub use self::console::Console;
 pub use self::position::Position;
 pub use self::text::Text;
-pub use self::config::{ Configuration, ConfigError };
 
 const HELPTEXT: &'static str = "
 

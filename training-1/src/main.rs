@@ -1,8 +1,6 @@
 
 extern crate byteorder;
 extern crate find_folder;
-extern crate app_dirs;
-extern crate rustc_serialize;
 extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
@@ -15,8 +13,6 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use find_folder::Search;
 
-use app_dirs::{AppInfo, AppDataType};
-
 use sdl2::event::Event;
 use sdl2::keyboard::*;
 use sdl2::image::LoadTexture;
@@ -25,43 +21,11 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Console, Position, Text, VirtualMachine, Configuration, ConfigError};
+use vm::{Console, Position, Text, VirtualMachine};
 
 const FPS_STEP: u32 = 1000 / 60;
-const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
-const CONFIG_FILE: &'static str = "config.json";
 
 fn main() {
-    let config_root = app_dirs::app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
-    let config_file = {
-        let mut config_file = config_root.clone();
-        config_file.push(CONFIG_FILE);
-        config_file
-    };
-
-    if !config_file.exists() {
-        let default_config = Configuration::default();
-        default_config.store(&config_file).unwrap();
-    }
-
-    let config = match Configuration::load(&config_file) {
-        Err(err) => match err {
-            ConfigError::DeserializationError(err) => {
-                // Something happend during deserialization, indicating that the file has invalid content
-                println!("config.json could not be deserialized. Replacing with default ({:?})", err);
-                let default_config = Configuration::default();
-                default_config.store(&config_file).unwrap();
-                default_config
-            },
-            _ => {
-                panic!("Unable to load the configuration file! {:?}", err);
-            }
-        },
-        Ok(config) => {
-            config
-        }
-    };
-
     let window_width = 1280;
     let window_height = 720;
 
@@ -108,7 +72,7 @@ fn main() {
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
     let segments = assemble(local.join("level.asm"));
-    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap(), &config);
+    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap());
     let mut vm = VirtualMachine::new(cpu, 150, console);
     vm.load_code_segments(segments);
 
@@ -124,9 +88,9 @@ fn main() {
     'running: loop {
 
         for event in events.poll_iter() {
-            if vm.console.visible {
-                vm.console.process(&event);
-            } else {
+            vm.console.process(&event);
+
+            if !vm.console.visible {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
@@ -138,14 +102,7 @@ fn main() {
                             _ => (),
                         }
                     }
-                    Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
-                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
-                                        RSHIFTMOD) {
-                            if scancode == Some(config.get_scancode()) {
-                                vm.console.toggle(timestamp);
-                            }
-                        }
-
+                    Event::KeyDown { keycode, .. } => {
                         match keycode {
                             Some(Keycode::Escape) => break 'running,
 
