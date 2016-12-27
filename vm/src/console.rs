@@ -1,3 +1,4 @@
+
 use std;
 use std::path::Path;
 
@@ -10,8 +11,14 @@ use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
 use sdl2::surface::Surface;
 use sdl2::ttf::{Font, Sdl2TtfContext, STYLE_BOLD};
 
+use app_dirs::*;
+
 use position::Position;
 use text::Text;
+use config::{Configuration, ConfigError};
+
+const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
+const CONFIG_FILE: &'static str = "config.json";
 
 const BORDER_COLOR: Color = Color::RGBA(255, 255, 255, 64);
 
@@ -23,6 +30,8 @@ const FONT_SIZE: u16 = 18;
 pub struct Console<'a> {
     pub visible: bool,
     visible_start_time: u32, /* Used to ensure that the KeyDown event that opens the console does not trigger text input */
+
+    config: Configuration,
 
     font_file: &'a str,
     leader: Text,
@@ -48,6 +57,7 @@ impl<'a> Console<'a> {
                mut renderer: &mut Renderer,
                font_file: &'a str)
                -> Console<'a> {
+
         let (width, height) = renderer.window().unwrap().size();
         let mut texture =
             renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, width / 2, height)
@@ -70,9 +80,41 @@ impl<'a> Console<'a> {
         let mut font = ttf_context.load_font(Path::new(font_file), FONT_SIZE).unwrap();
         font.set_style(STYLE_BOLD);
 
+        let config_root = app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
+        let config_file = {
+            let mut config_file = config_root.clone();
+            config_file.push(CONFIG_FILE);
+            config_file
+        };
+
+        if !config_file.exists() {
+            let default_config = Configuration::default();
+            default_config.store(&config_file).unwrap();
+        }
+
+        let config = match Configuration::load(&config_file) {
+            Err(err) => match err {
+                ConfigError::DeserializationError(err) => {
+                    // Something happend during deserialization, indicating that the file has invalid content
+                    println!("config.json could not be deserialized. Replacing with default ({:?})", err);
+                    let default_config = Configuration::default();
+                    default_config.store(&config_file).unwrap();
+                    default_config
+                },
+                _ => {
+                    panic!("Unable to load the configuration file! {:?}", err);
+                }
+            },
+            Ok(config) => {
+                config
+            }
+        };
+
         Console {
             visible: false,
             visible_start_time: 0,
+
+            config: config,
 
             font_file: font_file,
             leader: Text::new(ttf_context,
@@ -100,6 +142,21 @@ impl<'a> Console<'a> {
     }
 
     pub fn process(&mut self, event: &Event) {
+        // Used to check if no modifiers are held when toggeling console
+        let no_mods = |keymod: Mod|
+            !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD);
+        
+        if !self.visible {
+            if let Event::KeyDown { scancode, keymod, timestamp, .. } = *event {
+                if no_mods(keymod) && scancode == Some(self.config.get_scancode()) {
+                    self.toggle(timestamp);
+                    return;
+                }
+            }
+            return;
+        } 
+
+        // Main event processing, only run if visible
         match *event {
             Event::TextInput { ref text, timestamp, .. } => {
                 if self.visible && timestamp > self.visible_start_time + 50 {
@@ -119,14 +176,9 @@ impl<'a> Console<'a> {
             }
             Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
                 if self.visible {
-                    if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
-                                          RSHIFTMOD) {
-                        // The 'Grave' scancode coresponds to the key in the top-left corner of the
-                        // keyboard, below escape, on (hopefully) all keyboard layouts.
-                        if let Some(Scancode::Grave) = scancode {
-                            self.toggle(timestamp);
-                            return;
-                        }
+                    if no_mods(keymod) && scancode == Some(self.config.get_scancode()) {
+                        self.toggle(timestamp);
+                        return;
                     }
 
                     match keycode { 

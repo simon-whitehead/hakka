@@ -1,3 +1,4 @@
+
 extern crate byteorder;
 extern crate find_folder;
 extern crate rs6502;
@@ -25,7 +26,6 @@ use vm::{Console, Position, Text, VirtualMachine};
 const FPS_STEP: u32 = 1000 / 60;
 
 fn main() {
-
     let window_width = 1280;
     let window_height = 720;
 
@@ -88,9 +88,9 @@ fn main() {
     'running: loop {
 
         for event in events.poll_iter() {
-            if vm.console.visible {
-                vm.console.process(&event);
-            } else {
+            vm.console.process(&event);
+
+            if !vm.console.visible {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
@@ -102,14 +102,7 @@ fn main() {
                             _ => (),
                         }
                     }
-                    Event::KeyDown { keycode, scancode, timestamp, keymod, .. } => {
-                        if !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD |
-                                        RSHIFTMOD) {
-                            if let Some(Scancode::Grave) = scancode {
-                                vm.console.toggle(timestamp);
-                            }
-                        }
-
+                    Event::KeyDown { keycode, .. } => {
                         match keycode {
                             Some(Keycode::Escape) => break 'running,
 
