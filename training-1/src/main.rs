@@ -21,7 +21,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Console, Position, Text, VirtualMachine};
+use vm::{Position, Text, VirtualMachine};
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -72,8 +72,11 @@ fn main() {
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     let cpu = init_cpu(&mut renderer, ship_width);
     let segments = assemble(local.join("level.asm"));
-    let console = Console::new(&ttf_context, &mut renderer, font.to_str().unwrap());
-    let mut vm = VirtualMachine::new(cpu, 150, console);
+    let mut vm = VirtualMachine::new(cpu,
+                                     150,
+                                     &ttf_context,
+                                     &mut renderer,
+                                     font.to_str().unwrap());
     vm.load_code_segments(segments);
 
     let mut events = sdl_context.event_pump().unwrap();
