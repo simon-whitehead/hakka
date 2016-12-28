@@ -94,7 +94,7 @@ impl<'a> Console<'a> {
 
         let config = match Configuration::load(&config_file) {
             Err(err) => match err {
-                ConfigError::DeserializationError(err) => {
+                ConfigError::Deserialization(err) => {
                     // Something happend during deserialization, indicating that the file has invalid content
                     println!("config.json could not be deserialized. Replacing with default ({:?})", err);
                     let default_config = Configuration::default();
@@ -164,13 +164,11 @@ impl<'a> Console<'a> {
                 }
             }
             Event::MouseWheel { y, .. } => {
-                if self.visible {
-                    if self.buffer.len() * FONT_SIZE as usize >
-                       (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
-                        self.backbuffer_y += y * 6;
-                        if self.backbuffer_y < 0 {
-                            self.backbuffer_y = 0;
-                        }
+                if self.visible &&
+                   self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
+                    self.backbuffer_y += y * 6;
+                    if self.backbuffer_y < 0 {
+                        self.backbuffer_y = 0;
                     }
                 }
             }
@@ -283,7 +281,7 @@ impl<'a> Console<'a> {
     }
 
     fn history_navigate_forward(&mut self) {
-        if self.command_history.len() > 0 &&
+        if !self.command_history.is_empty() &&
            self.history_position < self.command_history.len() - 1 {
             self.input_buffer = self.command_history[self.history_position + 1].clone();
             self.cursor_position = self.input_buffer.len();
