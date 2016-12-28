@@ -6,7 +6,7 @@ is being released to test the waters to see if people find it interesting.
 
 ## Building the game
 
-This game is built using [Rust](https://rust-lang.org/). You will need to [download and install Rust](https://www.rust-lang.org/en-US/install.html) before being able to build this game. 
+This game is built using [Rust](https://www.rust-lang.org/). You will need to [download and install Rust](https://www.rust-lang.org/en-US/install.html) before being able to build this game. 
 
 Hakka requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
 
