@@ -12,8 +12,10 @@ mod config;
 
 use rs6502::{CodeSegment, Cpu, Disassembler};
 use sdl2::render::Renderer;
+use sdl2::ttf::Sdl2TtfContext;
 
-pub use self::console::Console;
+use self::console::Console;
+
 pub use self::position::Position;
 pub use self::text::Text;
 
@@ -83,9 +85,16 @@ pub struct VirtualMachine<'a> {
 }
 
 impl<'a> VirtualMachine<'a> {
-    pub fn new<CR>(cpu: Cpu, clock_rate: CR, mut console: Console<'a>) -> VirtualMachine<'a>
+    pub fn new<CR>(cpu: Cpu,
+                   clock_rate: CR,
+                   ttf_context: &'a Sdl2TtfContext,
+                   mut renderer: &mut Renderer,
+                   font_file: &'a str)
+                   -> VirtualMachine<'a>
         where CR: Into<Option<u32>>
     {
+        let mut console = Console::new(ttf_context, renderer, font_file);
+
         console.println("Welcome to hakka. Type 'help' for instructions.");
         console.println("");
 
