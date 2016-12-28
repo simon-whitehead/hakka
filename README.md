@@ -4,10 +4,26 @@ A game that you can't pass simply by playing the game. You have to hack it.
 **NOTE: This is currently in "proof-of-concept" stage** and is being actively developed. This early version
 is being released to test the waters to see if people find it interesting.
 
-## Requirements
-Requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
+## Building the game
+
+This game is built using [Rust](https://rust-lang.org/). You will need to [download and install Rust](https://www.rust-lang.org/en-US/install.html) before being able to build this game. 
+
+Hakka requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
 
 [You can see instructions for installing the SDL2 development libraries here](https://github.com/AngryLawyer/rust-sdl2#sdl20-development-libraries)
+
+If you're on OSX and have Homebrew installed, it should be as simple as:
+
+```
+brew install SDL2
+brew install SDL2_image
+brew install SDL2_ttf
+brew install SDL2_gfx
+```
+
+Once the SDL dependencies are installed, you can run the game via:
+
+    cargo run --bin training-1
 
 ## How to play
 
