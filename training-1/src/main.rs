@@ -78,6 +78,7 @@ fn main() {
                                      &mut renderer,
                                      font.to_str().unwrap());
     vm.load_code_segments(segments);
+    vm.cpu.reset();
 
     let mut events = sdl_context.event_pump().unwrap();
 
