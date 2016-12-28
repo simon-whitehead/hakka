@@ -15,7 +15,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::VirtualMachine;
+use vm::{Position, Text, VirtualMachine};
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -39,7 +39,15 @@ fn main() {
     let local = Search::Parents(3).for_folder("001-the-door").unwrap();
     let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
 
-    let font = assets.join("FantasqueSansMono-Bold.ttf");
+    let font = assets.join("Segment7Standard.otf");
+
+    let test_text = Text::new(&ttf_context,
+                              &mut renderer,
+                              "ACCESS DENIED",
+                              Position::HorizontalCenter((window_width / 2) as i32, 25),
+                              56,
+                              Color::RGBA(255, 0, 0, 255),
+                              font.to_str().unwrap());
 
     let cpu = Cpu::new();
     let segments = assemble(local.join("level.asm"));
@@ -97,6 +105,7 @@ fn main() {
                 // Render complete game screen only if interrupts are enabled
                 if !vm.cpu.flags.interrupt_disabled {
                     // Render game here
+                    test_text.render(&mut renderer);
                 }
                 vm.render(&mut renderer);
                 renderer.present();
