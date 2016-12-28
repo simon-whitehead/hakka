@@ -7,19 +7,15 @@ extern crate vm;
 
 use std::path::Path;
 
-use byteorder::{ByteOrder, LittleEndian};
-
 use find_folder::Search;
 
 use sdl2::event::Event;
 use sdl2::keyboard::*;
-use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
-use sdl2::render::{Renderer, TextureQuery};
+use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Position, Text, VirtualMachine};
+use vm::VirtualMachine;
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -35,8 +31,6 @@ fn main() {
         .build()
         .unwrap();
 
-    let (window_width, _) = window.size();
-
     let mut renderer = window.renderer()
         .accelerated()
         .build()
@@ -47,7 +41,7 @@ fn main() {
 
     let font = assets.join("FantasqueSansMono-Bold.ttf");
 
-    let cpu = init_cpu(&mut renderer);
+    let cpu = Cpu::new();
     let segments = assemble(local.join("level.asm"));
     let mut vm = VirtualMachine::new(cpu,
                                      150,
@@ -55,6 +49,8 @@ fn main() {
                                      &mut renderer,
                                      font.to_str().unwrap());
     vm.load_code_segments(segments);
+    vm.cpu.reset();
+    vm.cpu.flags.interrupt_disabled = false;
 
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -122,11 +118,4 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
 {
     let mut assembler = Assembler::new();
     assembler.assemble_file(path, 0xC000).unwrap()
-}
-
-fn init_cpu(renderer: &mut Renderer) -> Cpu {
-    let mut cpu = Cpu::new();
-    cpu.flags.interrupt_disabled = false;
-
-    cpu
 }
