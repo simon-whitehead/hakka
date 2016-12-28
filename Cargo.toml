@@ -11,6 +11,10 @@ path = "vm/src/lib.rs"
 name = "training-1"
 path = "training-1/src/main.rs"
 
+[[bin]]
+name = "001-the-door"
+path = "001-the-door/src/main.rs"
+
 [dependencies]
 byteorder = "0.5.3"
 rs6502 = "0.2.0"
