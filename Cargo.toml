@@ -14,7 +14,6 @@ path = "training-1/src/main.rs"
 [dependencies]
 byteorder = "0.5.3"
 rs6502 = "0.3.0"
-vm = { path = "vm" }
 find_folder = "0.3.0"
 app_dirs = "1.1.1"
 rustc-serialize = "0.3.22"
