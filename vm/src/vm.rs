@@ -5,6 +5,8 @@ use sdl2::ttf::Sdl2TtfContext;
 
 use console::Console;
 
+use std::io::Write;
+
 const HELPTEXT: &'static str = "
 
 HAKKA
@@ -81,8 +83,8 @@ impl<'a> VirtualMachine<'a> {
     {
         let mut console = Console::new(ttf_context, renderer, font_file);
 
-        console.println("Welcome to hakka. Type 'help' for instructions.");
-        console.println("");
+        writeln!(console, "Welcome to hakka. Type 'help' for instructions").unwrap();
+        writeln!(console, "").unwrap();
 
         VirtualMachine {
             cpu: cpu,

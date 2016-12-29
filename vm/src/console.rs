@@ -1,6 +1,7 @@
 
 use std;
 use std::path::Path;
+use std::io::Write;
 
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
@@ -490,3 +491,18 @@ impl<'a> Console<'a> {
         renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height))).unwrap();
     }
 }
+
+impl<'a> Write for Console<'a> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let lines = std::str::from_utf8(buf).unwrap();
+        for line in lines.lines() {
+            self.println(line);
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
