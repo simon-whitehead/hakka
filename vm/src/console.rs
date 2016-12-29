@@ -494,9 +494,26 @@ impl<'a> Console<'a> {
 
 impl<'a> Write for Console<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let lines = std::str::from_utf8(buf).unwrap();
-        for line in lines.lines() {
-            self.println(line);
+        if self.buffer.is_empty() {
+            self.buffer.push(String::new());
+        }
+
+        let mut text = String::from(std::str::from_utf8(buf).unwrap());
+        while !text.is_empty() {
+            if let Some(index) = text.find('\n') {
+                let substring: String = text.drain(..index+1).filter(|c| *c != '\n' && *c != '\r').collect();
+
+                if let Some(last) = self.buffer.last_mut() {
+                    last.push_str(&substring);
+                }
+
+                self.buffer.push(String::new());
+            } else {
+                if let Some(last) = self.buffer.last_mut() {
+                    last.push_str(&text);
+                }
+                text.drain(..);
+            }
         }
         Ok(buf.len())
     }
