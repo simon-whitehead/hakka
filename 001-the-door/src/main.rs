@@ -5,6 +5,9 @@ extern crate rs6502;
 extern crate sdl2;
 extern crate vm;
 
+mod button;
+mod keypad;
+
 use std::path::Path;
 
 use find_folder::Search;
@@ -16,6 +19,8 @@ use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
 use vm::{Position, Text, VirtualMachine};
+
+use keypad::Keypad;
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -39,15 +44,7 @@ fn main() {
     let local = Search::Parents(3).for_folder("001-the-door").unwrap();
     let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
 
-    let font = assets.join("Segment7Standard.otf");
-
-    let test_text = Text::new(&ttf_context,
-                              &mut renderer,
-                              "ACCESS DENIED",
-                              Position::HorizontalCenter((window_width / 2) as i32, 25),
-                              56,
-                              Color::RGBA(255, 0, 0, 255),
-                              font.to_str().unwrap());
+    let default_font = assets.join("FantasqueSansMono-Bold.ttf");
 
     let cpu = Cpu::new();
     let segments = assemble(local.join("level.asm"));
@@ -55,10 +52,12 @@ fn main() {
                                      150,
                                      &ttf_context,
                                      &mut renderer,
-                                     font.to_str().unwrap());
+                                     default_font.to_str().unwrap());
     vm.load_code_segments(segments);
     vm.cpu.reset();
     vm.cpu.flags.interrupt_disabled = false;
+
+    let mut keypad = Keypad::new(&ttf_context, &mut renderer);
 
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -95,22 +94,14 @@ fn main() {
         } else {
             vm.cycle();
 
-            // Rendering only the background when interrupts are disabled results in a horrible
-            // flickering; therefore only render when we're either in single stepping mode or
-            // interrupts are enabled
-            if vm.is_debugging() || !vm.cpu.flags.interrupt_disabled {
-                renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                renderer.clear();
+            renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+            renderer.clear();
 
-                // Render complete game screen only if interrupts are enabled
-                if !vm.cpu.flags.interrupt_disabled {
-                    // Render game here
-                    test_text.render(&mut renderer);
-                }
-                vm.render(&mut renderer);
-                renderer.present();
-                last_fps = now;
-            }
+            // Render game here
+            keypad.render(&mut renderer);
+            vm.render(&mut renderer);
+            renderer.present();
+            last_fps = now;
         }
 
         // Dump the CPU memory at 1 second intervals if the monitor is enabled
