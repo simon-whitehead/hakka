@@ -47,7 +47,6 @@ pub struct Console<'a> {
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
     font: Font<'a>,
-    line_ending: bool, // Tracks where the next print call should append to
     ctrl: bool, // Tracks the Ctrl key being pressed
     shift: bool, // Tracks the Shift key being pressed
 }
@@ -136,7 +135,6 @@ impl<'a> Console<'a> {
             ttf_context: ttf_context,
             size: (width / 2, height),
             font: font,
-            line_ending: true,
             ctrl: false,
             shift: false,
         }
@@ -300,38 +298,6 @@ impl<'a> Console<'a> {
         } else {
             None
         }
-    }
-
-    pub fn print<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        if !self.line_ending {
-            let last = self.buffer.last_mut().unwrap();
-            last.push_str(&text.into());
-        } else {
-            self.buffer.push(text.into());
-        }
-        self.line_ending = false;
-    }
-
-    pub fn println<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        self.buffer.push(text.into());
-        self.line_ending = true;
-    }
-
-    pub fn print_lines<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        for line in text.into().lines() {
-            self.println(line);
-        }
-    }
-
-    pub fn wrap_line(&mut self) {
-        self.buffer.push("".into());
-        self.line_ending = false;
     }
 
     /// Toggles the visibility of the Console

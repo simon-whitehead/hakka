@@ -127,9 +127,8 @@ impl<'a> VirtualMachine<'a> {
                 n += self.cpu.step().expect("SEGFAULT") as u32;
                 if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
                     self.broken = true;
-                    self.console.println("");
-                    self.console
-                        .println(format!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC));
+                    writeln!(self.console, "").unwrap();
+                    writeln!(self.console, "BREAKPOINT hit at {:04x}", self.cpu.registers.PC).unwrap();
                     // We are supposed to pass the current timestamp to prevent the keys which are
                     // used to toggle the console from inputing text into the console. As no key
                     // is pressed to open the console in this instance, passing the time is not
@@ -150,8 +149,8 @@ impl<'a> VirtualMachine<'a> {
             self.step = false;
             if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
                 self.broken = true;
-                self.console.println("");
-                self.console.println(format!("BREAKPOINT hit at {:04X}", self.cpu.registers.PC));
+                writeln!(self.console, "").unwrap();
+                writeln!(self.console, "BREAKPOINT hit at {:04x}", self.cpu.registers.PC).unwrap();
                 self.console.toggle(0);
             }
         }
@@ -177,7 +176,7 @@ impl<'a> VirtualMachine<'a> {
         } else if parts[0] == "clear" || parts[0] == "cls" {
             self.console.clear();
         } else if parts[0] == "help" {
-            self.console.print_lines(HELPTEXT);
+            writeln!(self.console, "{}", HELPTEXT).unwrap();
         } else if parts[0] == "source" {
             self.dump_disassembly();
         } else if parts[0] == "list" {
@@ -190,18 +189,18 @@ impl<'a> VirtualMachine<'a> {
             }
         } else if parts[0] == "memset" || parts[0] == "set" {
             if parts.len() < 3 {
-                self.console
-                    .println("ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 \
-                              in 0x00.");
+                writeln!(self.console,
+                    "ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 in 0x00."
+                ) .unwrap();
             } else if parts.len() == 3 {
                 if let Ok(dst) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
                     if let Ok(src) = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
                         self.cpu.memory[dst as usize] = src;
                     } else {
-                        self.console.println("ERR: Unable to parse source byte value");
+                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
                     }
                 } else {
-                    self.console.println("ERR: Unable to parse destination byte value");
+                    writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
                 }
             } else if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
                 for p in &parts[2..] {
@@ -209,11 +208,11 @@ impl<'a> VirtualMachine<'a> {
                         self.cpu.memory[dst] = byte;
                         dst += 0x01;
                     } else {
-                        self.console.println("ERR: Unable to parse source byte value");
+                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
                     }
                 }
             } else {
-                self.console.println("ERR: Unable to parse destination byte value");
+                writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
             }
         } else if parts[0] == "memdmp" || parts[0] == "dmp" {
             // 1 argument assumes 1 memory "page"
@@ -222,7 +221,7 @@ impl<'a> VirtualMachine<'a> {
 
                     self.dump_memory_page(page_number);
                 } else {
-                    self.console.println("ERR: Unable to parse memory page");
+                    writeln!(self.console, "ERR: Unable to parse memory page").unwrap()
                 }
             } else if parts.len() == 3 {
                 // A memory range instead
@@ -230,10 +229,10 @@ impl<'a> VirtualMachine<'a> {
                     if let Ok(end) = u16::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
                         self.dump_memory_range(start, end);
                     } else {
-                        self.console.println("ERR: Unable to parse end address value");
+                        writeln!(self.console, "ERR: Unable to parse end address value").unwrap();
                     }
                 } else {
-                    self.console.println("ERR: Unable to parse start address value");
+                    writeln!(self.console, "ERR: Unable to parse start address value").unwrap();
                 }
             }
         } else if parts[0] == "registers" || parts[0] == "reg" {
@@ -246,30 +245,30 @@ impl<'a> VirtualMachine<'a> {
                 if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
                     if addr <= u16::max_value() as usize {
                         if self.breakpoints[addr] > 0 {
-                            self.console.println(format!("Removed breakpoint at {:04X}", addr));
+                            writeln!(self.console, "Remove breakpoint at {:04X}", addr).unwrap();
                             self.breakpoints[addr] = 0;
                         } else {
-                            self.console.println(format!("Added breakpoint at {:04X}", addr));
+                            writeln!(self.console, "Added breakpoint at {:04X}", addr).unwrap();
                             self.breakpoints[addr] = 1;
                         }
                     } else {
-                        self.console.println("ERR: Value outside addressable range.");
+                        writeln!(self.console, "ERR: Value outside addressable range.").unwrap();
                     }
                 } else {
-                    self.console.println("ERR: Unable to parse breakpoint address");
+                    writeln!(self.console, "ERR: Unable to parse breakpoint address").unwrap();
                 }
             } else {
                 self.broken = true;
-                self.console.println("Execution stopped");
+                writeln!(self.console, "Execution stopped").unwrap();
             }
         } else if parts[0] == "continue" || parts[0] == "c" {
             self.broken = false;
-            self.console.println("Execution resumed");
+            writeln!(self.console, "Execution resumed").unwrap();
         } else if parts[0] == "step" || parts[0] == "s" {
             self.broken = true;
             self.step = true;
         } else {
-            self.console.println("Unknown command");
+            writeln!(self.console, "Unknown command").unwrap();
         }
 
         // Don't assign a blank command as a last command
@@ -281,7 +280,7 @@ impl<'a> VirtualMachine<'a> {
     fn enable_memory_monitor(&mut self, input: &str) {
         let parts: Vec<&str> = input.split(' ').collect();
         if parts.len() < 3 {
-            self.console.println("ERR: Requires 2 arguments. Example: monitor 0x00 0xFF");
+            writeln!(self.console, "ERR: Requires 2 arguments. Example: monitor 0x00 0xFF").unwrap();
         } else {
             let start = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
             let end = usize::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
@@ -297,23 +296,26 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn dump_disassembly(&mut self) {
-        self.console.println("");
+        writeln!(self.console, " ").unwrap();
 
         for segment in &self.segments {
-            self.console.println(format!(".ORG ${:04X}", segment.address));
+            writeln!(self.console, ".ORG ${:04X}", segment.address).unwrap();
             let disassembler = Disassembler::with_offset(segment.address);
             let pairs = disassembler.disassemble_with_addresses(&segment.code);
             let lines = self.highlight_lines(self.cpu.registers.PC as usize,
                                              pairs,
                                              segment.address,
                                              false);
-            self.console.print_lines(lines.join(""));
+            for line in lines {
+                writeln!(self.console, "{}", line).unwrap();
+            }
         }
-        self.console.println("");
+
+        writeln!(self.console, " ").unwrap();
     }
 
     fn dump_local_disassembly(&mut self) {
-        self.console.println("");
+        writeln!(self.console, " ").unwrap();
 
         let result = {
             let pc = self.cpu.registers.PC as usize;
@@ -322,30 +324,32 @@ impl<'a> VirtualMachine<'a> {
             let pairs = disassembler.disassemble_with_addresses(&local_segment.code);
             self.highlight_lines(pc, pairs, local_segment.address, true)
         };
-        self.console.print_lines(result.join(""));
-        self.console.println("");
+        for line in result {
+            writeln!(self.console, "{}", line).unwrap();
+        }
+        writeln!(self.console, "").unwrap();
     }
 
     pub fn dump_memory_page(&mut self, page: usize) {
         let mut addr = page * 0x100;
         for chunk in self.cpu.memory[page * 0x100..(page * 0x100) + 0x100].chunks(8) {
-            self.console.print(format!("{:04X}: ", addr));
+            writeln!(self.console, "{:04X}: ", addr).unwrap();
             for b in chunk {
-                self.console.print(format!("{:02X} ", *b));
+                writeln!(self.console, "{:02X} ", *b).unwrap();
             }
-            self.console.wrap_line();
+            writeln!(self.console, "").unwrap();
             addr += 0x08;
         }
-        self.console.println("");
+        writeln!(self.console, "").unwrap();
     }
 
     pub fn dump_memory(&mut self) {
         for chunk in self.cpu.memory[self.monitor.start_addr..self.monitor.end_addr + 0x01]
             .chunks(8) {
             for b in chunk {
-                self.console.print(format!("{:02X} ", *b));
+                writeln!(self.console, "{:02X} ", *b).unwrap();
             }
-            self.console.wrap_line();
+            writeln!(self.console, "").unwrap();
         }
     }
 
@@ -354,37 +358,33 @@ impl<'a> VirtualMachine<'a> {
         let end = end as usize;
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
             for b in chunk {
-                self.console.print(format!("{:02X} ", *b));
+                writeln!(self.console, "{:02X} ", *b).unwrap();
             }
-            self.console.wrap_line();
+            writeln!(self.console, "").unwrap();
         }
-        self.console.println("");
+        writeln!(self.console, "").unwrap();
     }
 
     fn dump_registers(&mut self) {
-        self.console.println("");
-        self.console.println(format!("A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A));
-        self.console.println(format!("X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X));
-        self.console.println(format!("Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y));
-        self.console.println(format!("PC: {} ({:04X})",
-                                     self.cpu.registers.PC,
-                                     self.cpu.registers.PC));
-        self.console.println(format!("S: {} ({:04X})",
-                                     self.cpu.stack.pointer,
-                                     self.cpu.stack.pointer));
+        writeln!(self.console, " ").unwrap();
+        writeln!(self.console,"A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A).unwrap();
+        writeln!(self.console, "X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X).unwrap();
+        writeln!(self.console, "Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y).unwrap();
+        writeln!(self.console, "PC: {} ({:04X})", self.cpu.registers.PC, self.cpu.registers.PC).unwrap();
+        writeln!(self.console, "S: {} ({:04X})", self.cpu.stack.pointer, self.cpu.stack.pointer).unwrap();
     }
 
     fn dump_flags(&mut self) {
-        self.console.println("");
-        self.console.println(format!("Carry: {}", self.cpu.flags.carry));
-        self.console.println(format!("Zero: {}", self.cpu.flags.zero));
-        self.console.println(format!("Interrupts disabled: {}", self.cpu.flags.interrupt_disabled));
-        self.console.println(format!("Decimal mode: {}", self.cpu.flags.decimal));
-        self.console.println(format!("Break: {}", self.cpu.flags.breakpoint));
-        self.console.println(format!("Overflow: {}", self.cpu.flags.overflow));
-        self.console.println(format!("Sign: {}", self.cpu.flags.sign));
-        self.console.println(format!("Unused: {}", self.cpu.flags.unused));
-        self.console.println("");
+        writeln!(self.console, " ").unwrap();
+        writeln!(self.console, "Carry: {}", self.cpu.flags.carry).unwrap();
+        writeln!(self.console, "Zero: {}", self.cpu.flags.zero).unwrap();
+        writeln!(self.console, "Interrupts disabled: {}", self.cpu.flags.interrupt_disabled).unwrap();
+        writeln!(self.console, "Decimal mode: {}", self.cpu.flags.decimal).unwrap();
+        writeln!(self.console, "Break: {}", self.cpu.flags.breakpoint).unwrap();
+        writeln!(self.console, "Overflow: {}", self.cpu.flags.overflow).unwrap();
+        writeln!(self.console, "Sign: {}", self.cpu.flags.sign).unwrap();
+        writeln!(self.console, "Unused: {}", self.cpu.flags.unused).unwrap();
+        writeln!(self.console, " ").unwrap();
     }
 
     fn get_local_segment(&self, pc: usize) -> &CodeSegment {
