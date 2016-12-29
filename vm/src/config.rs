@@ -43,24 +43,24 @@ impl Configuration {
 
 #[derive(Debug)]
 pub enum ConfigError {
-    FileError(io::Error),
-    SerializationError(json::EncoderError),
-    DeserializationError(json::DecoderError),
+    File(io::Error),
+    Serialization(json::EncoderError),
+    Deserialization(json::DecoderError),
 }
 
 impl From<io::Error> for ConfigError {
     fn from(e: io::Error) -> ConfigError {
-        ConfigError::FileError(e) 
+        ConfigError::File(e) 
     }
 }
 impl From<json::EncoderError> for ConfigError {
     fn from(e: json::EncoderError) -> ConfigError {
-        ConfigError::SerializationError(e) 
+        ConfigError::Serialization(e) 
     }
 }
 impl From<json::DecoderError> for ConfigError {
     fn from(e: json::DecoderError) -> ConfigError {
-        ConfigError::DeserializationError(e) 
+        ConfigError::Deserialization(e) 
     }
 }
 
