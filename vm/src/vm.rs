@@ -176,7 +176,7 @@ impl<'a> VirtualMachine<'a> {
         } else if parts[0] == "clear" || parts[0] == "cls" {
             self.console.clear();
         } else if parts[0] == "help" {
-            writeln!(self.console, "{}", HELPTEXT).unwrap();
+            write!(self.console, "{}", HELPTEXT).unwrap();
         } else if parts[0] == "source" {
             self.dump_disassembly();
         } else if parts[0] == "list" {
@@ -236,7 +236,7 @@ impl<'a> VirtualMachine<'a> {
                 }
             }
         } else if parts[0] == "registers" || parts[0] == "reg" {
-            self.dump_registers();
+            self.dump_registers(); 
         } else if parts[0] == "flags" {
             self.dump_flags();
         } else if parts[0] == "break" || parts[0] == "b" {
@@ -307,7 +307,7 @@ impl<'a> VirtualMachine<'a> {
                                              segment.address,
                                              false);
             for line in lines {
-                writeln!(self.console, "{}", line).unwrap();
+                write!(self.console, "{}", line).unwrap();
             }
         }
 
@@ -325,7 +325,7 @@ impl<'a> VirtualMachine<'a> {
             self.highlight_lines(pc, pairs, local_segment.address, true)
         };
         for line in result {
-            writeln!(self.console, "{}", line).unwrap();
+            write!(self.console, "{}", line).unwrap();
         }
         writeln!(self.console, "").unwrap();
     }
@@ -333,9 +333,9 @@ impl<'a> VirtualMachine<'a> {
     pub fn dump_memory_page(&mut self, page: usize) {
         let mut addr = page * 0x100;
         for chunk in self.cpu.memory[page * 0x100..(page * 0x100) + 0x100].chunks(8) {
-            writeln!(self.console, "{:04X}: ", addr).unwrap();
+            write!(self.console, "{:04X}: ", addr).unwrap();
             for b in chunk {
-                writeln!(self.console, "{:02X} ", *b).unwrap();
+                write!(self.console, "{:02X} ", *b).unwrap();
             }
             writeln!(self.console, "").unwrap();
             addr += 0x08;
@@ -347,7 +347,7 @@ impl<'a> VirtualMachine<'a> {
         for chunk in self.cpu.memory[self.monitor.start_addr..self.monitor.end_addr + 0x01]
             .chunks(8) {
             for b in chunk {
-                writeln!(self.console, "{:02X} ", *b).unwrap();
+                write!(self.console, "{:02X} ", *b).unwrap();
             }
             writeln!(self.console, "").unwrap();
         }
@@ -358,7 +358,7 @@ impl<'a> VirtualMachine<'a> {
         let end = end as usize;
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
             for b in chunk {
-                writeln!(self.console, "{:02X} ", *b).unwrap();
+                write!(self.console, "{:02X} ", *b).unwrap();
             }
             writeln!(self.console, "").unwrap();
         }

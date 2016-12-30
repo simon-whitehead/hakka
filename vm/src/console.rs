@@ -164,7 +164,7 @@ impl<'a> Console<'a> {
             }
             Event::MouseWheel { y, .. } => {
                 if self.visible &&
-                   self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
+                    self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
                     self.backbuffer_y += y * 6;
                     if self.backbuffer_y < 0 {
                         self.backbuffer_y = 0;
@@ -314,7 +314,9 @@ impl<'a> Console<'a> {
     }
 
     pub fn commit(&mut self) {
-        self.buffer.push(format!("hakka> {}", self.input_buffer.clone()));
+        let command = self.input_buffer.clone();
+        writeln!(self, "hakka> {}", command).unwrap();
+
         self.process_command();
         self.input_buffer.clear();
         self.cursor_position = 0;
@@ -432,7 +434,14 @@ impl<'a> Console<'a> {
             .unwrap();
         let mut counter = 2;
         // TODO: Make the line render limit here configurable
-        for line in self.buffer.iter().rev().take(200) {
+        for (index, line) in self.buffer.iter().rev().take(200).enumerate() {
+            // index 0 is the last line, b/c the iterator is reversed. writeln!
+            // outputs a newline at the end of what is written, creating a new
+            // string in the buffer, which we do not want to render
+            if index == 0 && line.is_empty() {
+                continue;
+            }
+
             let y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
@@ -481,6 +490,7 @@ impl<'a> Write for Console<'a> {
                 text.drain(..);
             }
         }
+
         Ok(buf.len())
     }
 
