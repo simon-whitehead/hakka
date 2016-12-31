@@ -9,6 +9,7 @@ mod console;
 mod position;
 mod text;
 mod config;
+mod command;
 mod vm;
 
 pub use self::position::Position;

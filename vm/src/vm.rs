@@ -4,6 +4,7 @@ use sdl2::render::Renderer;
 use sdl2::ttf::Sdl2TtfContext;
 
 use console::Console;
+use command::CommandSystem;
 
 use std::io::Write;
 
@@ -64,6 +65,7 @@ pub struct VirtualMachine<'a> {
     pub cpu: Cpu,
     pub monitor: MemoryMonitor,
     pub console: Console<'a>,
+    pub command_system: CommandSystem,
     segments: Vec<CodeSegment>,
     clock_rate: Option<u32>,
     last_command: String,
@@ -89,6 +91,7 @@ impl<'a> VirtualMachine<'a> {
         VirtualMachine {
             cpu: cpu,
             console: console,
+            command_system: CommandSystem::new(),
             segments: Vec::new(),
             clock_rate: clock_rate.into(),
             monitor: MemoryMonitor {
@@ -159,122 +162,127 @@ impl<'a> VirtualMachine<'a> {
     pub fn execute_command<S>(&mut self, cmd: S)
         where S: Into<String>
     {
-        let mut input: String = cmd.into().trim().into();
+        let cmd = cmd.into();
 
-        if input == "r" || input == "repeat" {
-            input = self.last_command.clone();
-        }
-
-        let parts = input.split(' ').collect::<Vec<_>>();
-
-        if input.is_empty() {
-            if self.monitor.enabled {
-                self.monitor.enabled = false;
-            }
-        } else if input.ends_with("^C") {
-            self.monitor.enabled = false;
-        } else if parts[0] == "clear" || parts[0] == "cls" {
-            self.console.clear();
-        } else if parts[0] == "help" {
-            write!(self.console, "{}", HELPTEXT).unwrap();
-        } else if parts[0] == "source" {
-            self.dump_disassembly();
-        } else if parts[0] == "list" {
-            self.dump_local_disassembly();
-        } else if parts[0] == "monitor" || parts[0] == "mon" {
-            if self.monitor.enabled {
-                self.monitor.enabled = false;
-            } else {
-                self.enable_memory_monitor(&input);
-            }
-        } else if parts[0] == "memset" || parts[0] == "set" {
-            if parts.len() < 3 {
-                writeln!(self.console,
-                    "ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 in 0x00."
-                ) .unwrap();
-            } else if parts.len() == 3 {
-                if let Ok(dst) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
-                    if let Ok(src) = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
-                        self.cpu.memory[dst as usize] = src;
-                    } else {
-                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
-                    }
-                } else {
-                    writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
-                }
-            } else if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
-                for p in &parts[2..] {
-                    if let Ok(byte) = u8::from_str_radix(&p.replace("0x", "")[..], 16) {
-                        self.cpu.memory[dst] = byte;
-                        dst += 0x01;
-                    } else {
-                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
-                    }
-                }
-            } else {
-                writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
-            }
-        } else if parts[0] == "memdmp" || parts[0] == "dmp" {
-            // 1 argument assumes 1 memory "page"
-            if parts.len() == 2 {
-                if let Ok(page_number) = parts[1].parse() {
-
-                    self.dump_memory_page(page_number);
-                } else {
-                    writeln!(self.console, "ERR: Unable to parse memory page").unwrap()
-                }
-            } else if parts.len() == 3 {
-                // A memory range instead
-                if let Ok(start) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
-                    if let Ok(end) = u16::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
-                        self.dump_memory_range(start, end);
-                    } else {
-                        writeln!(self.console, "ERR: Unable to parse end address value").unwrap();
-                    }
-                } else {
-                    writeln!(self.console, "ERR: Unable to parse start address value").unwrap();
-                }
-            }
-        } else if parts[0] == "registers" || parts[0] == "reg" {
-            self.dump_registers(); 
-        } else if parts[0] == "flags" {
-            self.dump_flags();
-        } else if parts[0] == "break" || parts[0] == "b" {
-            // 1 argument assumes 1 memory "page"
-            if parts.len() == 2 {
-                if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
-                    if addr <= u16::max_value() as usize {
-                        if self.breakpoints[addr] > 0 {
-                            writeln!(self.console, "Remove breakpoint at {:04X}", addr).unwrap();
-                            self.breakpoints[addr] = 0;
-                        } else {
-                            writeln!(self.console, "Added breakpoint at {:04X}", addr).unwrap();
-                            self.breakpoints[addr] = 1;
-                        }
-                    } else {
-                        writeln!(self.console, "ERR: Value outside addressable range.").unwrap();
-                    }
-                } else {
-                    writeln!(self.console, "ERR: Unable to parse breakpoint address").unwrap();
-                }
-            } else {
-                self.broken = true;
-                writeln!(self.console, "Execution stopped").unwrap();
-            }
-        } else if parts[0] == "continue" || parts[0] == "c" {
-            self.broken = false;
-            writeln!(self.console, "Execution resumed").unwrap();
-        } else if parts[0] == "step" || parts[0] == "s" {
-            self.broken = true;
-            self.step = true;
-        } else {
-            writeln!(self.console, "Unknown command").unwrap();
+        let sucess = self.command_system.execute(cmd.clone(), &mut self.console);
+        if !sucess {
+            writeln!(self.console, "Command not recognized, type 'help' for a list of commands").unwrap();
         }
 
         // Don't assign a blank command as a last command
-        if !input.is_empty() {
-            self.last_command = input.clone();
+        if !cmd.is_empty() {
+            self.last_command = cmd.clone();
         }
+
+//        if input == "r" || input == "repeat" {
+//            input = self.last_command.clone();
+//        }
+//
+//        let parts = input.split(' ').collect::<Vec<_>>();
+//
+//        if input.is_empty() {
+//            if self.monitor.enabled {
+//                self.monitor.enabled = false;
+//            }
+//        } else if input.ends_with("^C") {
+//            self.monitor.enabled = false;
+//        } else if parts[0] == "clear" || parts[0] == "cls" {
+//            self.console.clear();
+//        } else if parts[0] == "help" {
+//            write!(self.console, "{}", HELPTEXT).unwrap();
+//        } else if parts[0] == "source" {
+//            self.dump_disassembly();
+//        } else if parts[0] == "list" {
+//            self.dump_local_disassembly();
+//        } else if parts[0] == "monitor" || parts[0] == "mon" {
+//            if self.monitor.enabled {
+//                self.monitor.enabled = false;
+//            } else {
+//                self.enable_memory_monitor(&input);
+//            }
+//        } else if parts[0] == "memset" || parts[0] == "set" {
+//            if parts.len() < 3 {
+//                writeln!(self.console,
+//                    "ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 in 0x00."
+//                ) .unwrap();
+//            } else if parts.len() == 3 {
+//                if let Ok(dst) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+//                    if let Ok(src) = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
+//                        self.cpu.memory[dst as usize] = src;
+//                    } else {
+//                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
+//                    }
+//                } else {
+//                    writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
+//                }
+//            } else if let Ok(mut dst) = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+//                for p in &parts[2..] {
+//                    if let Ok(byte) = u8::from_str_radix(&p.replace("0x", "")[..], 16) {
+//                        self.cpu.memory[dst] = byte;
+//                        dst += 0x01;
+//                    } else {
+//                        writeln!(self.console, "ERR: Unable to parse source byte value").unwrap();
+//                    }
+//                }
+//            } else {
+//                writeln!(self.console, "ERR: Unable to parse destination byte value").unwrap();
+//            }
+//        } else if parts[0] == "memdmp" || parts[0] == "dmp" {
+//            // 1 argument assumes 1 memory "page"
+//            if parts.len() == 2 {
+//                if let Ok(page_number) = parts[1].parse() {
+//
+//                    self.dump_memory_page(page_number);
+//                } else {
+//                    writeln!(self.console, "ERR: Unable to parse memory page").unwrap()
+//                }
+//            } else if parts.len() == 3 {
+//                // A memory range instead
+//                if let Ok(start) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
+//                    if let Ok(end) = u16::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
+//                        self.dump_memory_range(start, end);
+//                    } else {
+//                        writeln!(self.console, "ERR: Unable to parse end address value").unwrap();
+//                    }
+//                } else {
+//                    writeln!(self.console, "ERR: Unable to parse start address value").unwrap();
+//                }
+//            }
+//        } else if parts[0] == "registers" || parts[0] == "reg" {
+//            self.dump_registers(); 
+//        } else if parts[0] == "flags" {
+//            self.dump_flags();
+//        } else if parts[0] == "break" || parts[0] == "b" {
+//            // 1 argument assumes 1 memory "page"
+//            if parts.len() == 2 {
+//                if let Ok(addr) = usize::from_str_radix(&parts[1][..], 16) {
+//                    if addr <= u16::max_value() as usize {
+//                        if self.breakpoints[addr] > 0 {
+//                            writeln!(self.console, "Remove breakpoint at {:04X}", addr).unwrap();
+//                            self.breakpoints[addr] = 0;
+//                        } else {
+//                            writeln!(self.console, "Added breakpoint at {:04X}", addr).unwrap();
+//                            self.breakpoints[addr] = 1;
+//                        }
+//                    } else {
+//                        writeln!(self.console, "ERR: Value outside addressable range.").unwrap();
+//                    }
+//                } else {
+//                    writeln!(self.console, "ERR: Unable to parse breakpoint address").unwrap();
+//                }
+//            } else {
+//                self.broken = true;
+//                writeln!(self.console, "Execution stopped").unwrap();
+//            }
+//        } else if parts[0] == "continue" || parts[0] == "c" {
+//            self.broken = false;
+//            writeln!(self.console, "Execution resumed").unwrap();
+//        } else if parts[0] == "step" || parts[0] == "s" {
+//            self.broken = true;
+//            self.step = true;
+//        } else {
+//            writeln!(self.console, "Unknown command").unwrap();
+//        }
     }
 
     fn enable_memory_monitor(&mut self, input: &str) {
