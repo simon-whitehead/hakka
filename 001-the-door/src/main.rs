@@ -68,6 +68,7 @@ fn main() {
 
         for event in events.poll_iter() {
             vm.console.process(&event);
+            keypad.process(&event, &mut vm.cpu);
 
             if !vm.console.visible {
                 match event {

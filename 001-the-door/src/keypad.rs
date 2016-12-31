@@ -1,11 +1,14 @@
 
 use find_folder::Search;
 
+use sdl2::event::Event;
+use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Renderer;
-
 use sdl2::ttf::Sdl2TtfContext;
+
+use rs6502::Cpu;
 
 use button::Button;
 
@@ -22,6 +25,10 @@ const KEYPAD_HEIGHT: u32 = 500;
 
 const KEY_PADDING: u32 = 25;
 
+// ## Hardware registers ##
+
+const HARDWARE_REG_BUTTON: usize = 0xA000;
+
 pub struct Keypad {
     buttons: Vec<Button>,
 }
@@ -36,19 +43,43 @@ impl Keypad {
 
         Keypad {
             buttons: vec![
-                Button::new(ttf_context, renderer, "1", None, Self::create_button_rect(0, 0), font.clone()),
-                 Button::new(ttf_context, renderer, "2", "ABC", Self::create_button_rect(1, 0), font.clone()),
-                 Button::new(ttf_context, renderer, "3", "DEF", Self::create_button_rect(2, 0), font.clone()),
-                 Button::new(ttf_context, renderer, "4", "GHI", Self::create_button_rect(0, 1), font.clone()),
-                 Button::new(ttf_context, renderer, "5", "JKL", Self::create_button_rect(1, 1), font.clone()),
-                 Button::new(ttf_context, renderer, "6", "MNO", Self::create_button_rect(2, 1), font.clone()),
-                  Button::new(ttf_context, renderer, "7", "PQRS", Self::create_button_rect(0, 2), font.clone()),
-                 Button::new(ttf_context, renderer, "8", "TUV", Self::create_button_rect(1, 2), font.clone()),
-                  Button::new(ttf_context, renderer, "9", "WXYZ", Self::create_button_rect(2, 2), font.clone()),
-                Button::new(ttf_context, renderer, "*", None, Self::create_button_rect(0, 3), font.clone()),
-                Button::new(ttf_context, renderer, "0", None, Self::create_button_rect(1, 3), font.clone()),
-                Button::new(ttf_context, renderer, "#", None, Self::create_button_rect(2, 3), font.clone()),
+                Button::new(ttf_context, renderer, "1", None, 1, Self::create_button_rect(0, 0), font.clone()),
+                 Button::new(ttf_context, renderer, "2", "ABC", 2, Self::create_button_rect(1, 0), font.clone()),
+                 Button::new(ttf_context, renderer, "3", "DEF", 3, Self::create_button_rect(2, 0), font.clone()),
+                 Button::new(ttf_context, renderer, "4", "GHI", 4, Self::create_button_rect(0, 1), font.clone()),
+                 Button::new(ttf_context, renderer, "5", "JKL", 5, Self::create_button_rect(1, 1), font.clone()),
+                 Button::new(ttf_context, renderer, "6", "MNO", 6, Self::create_button_rect(2, 1), font.clone()),
+                  Button::new(ttf_context, renderer, "7", "PQRS", 7, Self::create_button_rect(0, 2), font.clone()),
+                 Button::new(ttf_context, renderer, "8", "TUV", 8, Self::create_button_rect(1, 2), font.clone()),
+                  Button::new(ttf_context, renderer, "9", "WXYZ", 9, Self::create_button_rect(2, 2), font.clone()),
+                Button::new(ttf_context, renderer, "*", None, 254, Self::create_button_rect(0, 3), font.clone()),
+                Button::new(ttf_context, renderer, "0", None, 0, Self::create_button_rect(1, 3), font.clone()),
+                Button::new(ttf_context, renderer, "#", None, 255, Self::create_button_rect(2, 3), font.clone()),
             ],
+        }
+    }
+
+    pub fn process(&mut self, event: &Event, cpu: &mut Cpu) {
+        match *event {
+            Event::MouseButtonDown { mouse_btn, x, y, .. } => {
+                if mouse_btn == MouseButton::Left {
+                    if (x > KEYPAD_X && x < KEYPAD_X + KEYPAD_WIDTH as i32) &&
+                       (y > KEYPAD_Y && y < KEYPAD_Y + KEYPAD_HEIGHT as i32) {
+                        // We have clicked inside the keypad - lets see if we hit a button:
+                        for button in &self.buttons {
+                            if (x > button.rect.left() && x < button.rect.right()) &&
+                               (y > button.rect.top() && y < button.rect.bottom()) {
+                                // Yep, we clicked this button, put its value in the hardware register
+                                cpu.memory[HARDWARE_REG_BUTTON] = button.value;
+                                // Interrupt the CPU to handle this now
+                                cpu.irq();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => (),
         }
     }
 

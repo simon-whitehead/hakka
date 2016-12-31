@@ -12,11 +12,12 @@ const FONT_SIZE: u16 = 60;
 const SUBTEXT_FONT_SIZE: u16 = 28;
 
 pub struct Button {
-    text: String,
+    pub text: String,
     subtext: String,
-    rect: Rect,
+    pub rect: Rect,
     text_object: Text,
     subtext_object: Option<Text>,
+    pub value: u8,
 }
 
 impl Button {
@@ -24,6 +25,7 @@ impl Button {
                          mut renderer: &mut Renderer,
                          text: S,
                          subtext: OS,
+                         value: u8,
                          rect: Rect,
                          font: P)
                          -> Button
@@ -64,6 +66,7 @@ impl Button {
         Button {
             text: text.clone(),
             subtext: subtext.clone(),
+            value: value,
             rect: rect,
             text_object: text_object,
             subtext_object: subtext_object,
