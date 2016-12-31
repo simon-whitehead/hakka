@@ -1,6 +1,7 @@
 
 use std;
 use std::path::Path;
+use std::io::Write;
 
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
@@ -46,7 +47,6 @@ pub struct Console<'a> {
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
     font: Font<'a>,
-    line_ending: bool, // Tracks where the next print call should append to
     ctrl: bool, // Tracks the Ctrl key being pressed
     shift: bool, // Tracks the Shift key being pressed
 }
@@ -135,7 +135,6 @@ impl<'a> Console<'a> {
             ttf_context: ttf_context,
             size: (width / 2, height),
             font: font,
-            line_ending: true,
             ctrl: false,
             shift: false,
         }
@@ -165,7 +164,7 @@ impl<'a> Console<'a> {
             }
             Event::MouseWheel { y, .. } => {
                 if self.visible &&
-                   self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
+                    self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
                     self.backbuffer_y += y * 6;
                     if self.backbuffer_y < 0 {
                         self.backbuffer_y = 0;
@@ -301,38 +300,6 @@ impl<'a> Console<'a> {
         }
     }
 
-    pub fn print<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        if !self.line_ending {
-            let last = self.buffer.last_mut().unwrap();
-            last.push_str(&text.into());
-        } else {
-            self.buffer.push(text.into());
-        }
-        self.line_ending = false;
-    }
-
-    pub fn println<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        self.buffer.push(text.into());
-        self.line_ending = true;
-    }
-
-    pub fn print_lines<S>(&mut self, text: S)
-        where S: Into<String>
-    {
-        for line in text.into().lines() {
-            self.println(line);
-        }
-    }
-
-    pub fn wrap_line(&mut self) {
-        self.buffer.push("".into());
-        self.line_ending = false;
-    }
-
     /// Toggles the visibility of the Console
     pub fn toggle(&mut self, time: u32) {
         self.visible = !self.visible;
@@ -347,7 +314,9 @@ impl<'a> Console<'a> {
     }
 
     pub fn commit(&mut self) {
-        self.buffer.push(format!("hakka> {}", self.input_buffer.clone()));
+        let command = self.input_buffer.clone();
+        writeln!(self, "hakka> {}", command).unwrap();
+
         self.process_command();
         self.input_buffer.clear();
         self.cursor_position = 0;
@@ -465,7 +434,14 @@ impl<'a> Console<'a> {
             .unwrap();
         let mut counter = 2;
         // TODO: Make the line render limit here configurable
-        for line in self.buffer.iter().rev().take(200) {
+        for (index, line) in self.buffer.iter().rev().take(200).enumerate() {
+            // index 0 is the last line, b/c the iterator is reversed. writeln!
+            // outputs a newline at the end of what is written, creating a new
+            // string in the buffer, which we do not want to render
+            if index == 0 && line.is_empty() {
+                continue;
+            }
+
             let y_pos = self.size.1 as i32 - (FONT_SIZE as i32 * counter) + self.backbuffer_y;
             counter += 1;
 
@@ -490,3 +466,36 @@ impl<'a> Console<'a> {
         renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height))).unwrap();
     }
 }
+
+impl<'a> Write for Console<'a> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if self.buffer.is_empty() {
+            self.buffer.push(String::new());
+        }
+
+        let mut text = String::from(std::str::from_utf8(buf).unwrap());
+        while !text.is_empty() {
+            if let Some(index) = text.find('\n') {
+                let substring: String = text.drain(..index+1).filter(|c| *c != '\n' && *c != '\r').collect();
+
+                if let Some(last) = self.buffer.last_mut() {
+                    last.push_str(&substring);
+                }
+
+                self.buffer.push(String::new());
+            } else {
+                if let Some(last) = self.buffer.last_mut() {
+                    last.push_str(&text);
+                }
+                text.drain(..);
+            }
+        }
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
