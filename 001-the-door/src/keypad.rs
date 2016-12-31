@@ -27,7 +27,7 @@ const KEY_PADDING: u32 = 25;
 
 // ## Hardware registers ##
 
-const HARDWARE_REG_BUTTON: usize = 0xA000;
+const HARDWARE_REG_BUTTON: usize = 0xD0FF;
 
 pub struct Keypad {
     buttons: Vec<Button>,
