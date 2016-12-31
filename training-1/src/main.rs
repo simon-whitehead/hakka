@@ -132,7 +132,7 @@ fn main() {
 
         if !level_complete {
             if let Some(cmd) = vm.console.get_next_command() {
-                let success = command_system.execute(cmd, &mut vm.console);
+                let success = command_system.execute(cmd, &mut vm);
                 if !success {
                     writeln!(vm.console, "Command not recognized, type 'help' for a list of commands").unwrap();
                 }

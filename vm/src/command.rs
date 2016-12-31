@@ -1,5 +1,6 @@
 
 use std::io::Write;
+use vm::VirtualMachine;
 
 pub struct CommandSystem {
     commands: Vec<Box<Command>>, 
@@ -23,7 +24,7 @@ impl CommandSystem {
         self.commands.push(Box::new(command));
     }
 
-    pub fn execute<S>(&self, command: S, mut out: &mut Write) -> bool
+    pub fn execute<S>(&self, command: S, mut vm: &mut VirtualMachine) -> bool
         where S: Into<String>
     {
         let command = command.into();
@@ -31,7 +32,7 @@ impl CommandSystem {
 
         for command in &self.commands {
             if command.matches_name(parts[0].clone()) {
-                command.execute(parts[1..].to_owned(), &self, &mut out);
+                command.execute(parts[1..].to_owned(), &self, &mut vm);
                 return true;
             }
         }
@@ -41,7 +42,7 @@ impl CommandSystem {
 }
 
 pub trait Command {
-    fn execute(&self, args: Vec<String>, system: &CommandSystem, out: &mut Write);
+    fn execute(&self, args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine);
     fn matches_name(&self, name: String) -> bool;
     fn get_help(&self) -> String {
         String::from("No help text provided")
@@ -50,10 +51,10 @@ pub trait Command {
 
 struct HelpCommand;
 impl Command for HelpCommand {
-    fn execute(&self, _args: Vec<String>, system: &CommandSystem, out: &mut Write) {
-        writeln!(out, "Commands:").unwrap();
+    fn execute(&self, _args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine) {
+        writeln!(vm.console, "Commands:").unwrap();
         for command in &system.commands {
-            writeln!(out, "    {}", command.get_help()).unwrap();
+            writeln!(vm.console, "    {}", command.get_help()).unwrap();
         }
     }
 
@@ -68,12 +69,12 @@ impl Command for HelpCommand {
 
 struct GreetCommand;
 impl Command for GreetCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, out: &mut Write) {
+    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
         if args.is_empty() {
-            writeln!(out, "Hello world!").unwrap();
+            writeln!(vm.console, "Hello world!").unwrap();
         } else {
             for name in args {
-                writeln!(out, "Hello {}!", name).unwrap();
+                writeln!(vm.console, "Hello {}!", name).unwrap();
             }
         }
     }
