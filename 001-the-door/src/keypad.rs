@@ -11,6 +11,7 @@ use sdl2::ttf::Sdl2TtfContext;
 use rs6502::Cpu;
 
 use button::Button;
+use lcd::Lcd;
 
 const KEYPAD_COLOR: Color = Color::RGBA(127, 127, 127, 255);
 
@@ -30,6 +31,7 @@ const KEY_PADDING: u32 = 25;
 const HARDWARE_REG_BUTTON: usize = 0xD0FF;
 
 pub struct Keypad {
+    lcd: Lcd,
     buttons: Vec<Button>,
 }
 
@@ -41,7 +43,10 @@ impl Keypad {
 
         let font = assets.join("FantasqueSansMono-Bold.ttf");
 
+        let lcd = Lcd::new(120, 120);
+
         Keypad {
+            lcd: lcd,
             buttons: vec![
                 Button::new(ttf_context, renderer, "1", None, 1, Self::create_button_rect(0, 0), font.clone()),
                  Button::new(ttf_context, renderer, "2", "ABC", 2, Self::create_button_rect(1, 0), font.clone()),
@@ -59,7 +64,13 @@ impl Keypad {
         }
     }
 
-    pub fn process(&mut self, event: &Event, cpu: &mut Cpu) {
+    pub fn process(&mut self,
+                   event: &Event,
+                   ttf_context: &Sdl2TtfContext,
+                   mut renderer: &mut Renderer,
+                   cpu: &mut Cpu) {
+        self.lcd.process(ttf_context, renderer, cpu, 0xD000);
+
         match *event {
             Event::MouseButtonDown { mouse_btn, x, y, .. } => {
                 if mouse_btn == MouseButton::Left {
@@ -83,12 +94,13 @@ impl Keypad {
         }
     }
 
-    pub fn render(&self, mut renderer: &mut Renderer) {
+    pub fn render(&mut self, mut renderer: &mut Renderer) {
         renderer.set_draw_color(KEYPAD_COLOR);
         renderer.fill_rect(Rect::new(KEYPAD_X, KEYPAD_Y, KEYPAD_WIDTH, KEYPAD_HEIGHT)).unwrap();
         for button in &self.buttons {
             button.render(renderer);
         }
+        self.lcd.render(renderer);
     }
 
     fn create_button_rect(x: u32, y: u32) -> Rect {

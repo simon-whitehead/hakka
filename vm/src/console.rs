@@ -18,7 +18,10 @@ use position::Position;
 use text::Text;
 use config::{Configuration, ConfigError};
 
-const APP_INFO: AppInfo = AppInfo { name: "hakka", author: "simon-whitehead" };
+const APP_INFO: AppInfo = AppInfo {
+    name: "hakka",
+    author: "simon-whitehead",
+};
 const CONFIG_FILE: &'static str = "config.json";
 
 const BORDER_COLOR: Color = Color::RGBA(255, 255, 255, 64);
@@ -93,21 +96,23 @@ impl<'a> Console<'a> {
         }
 
         let config = match Configuration::load(&config_file) {
-            Err(err) => match err {
-                ConfigError::Deserialization(err) => {
-                    // Something happend during deserialization, indicating that the file has invalid content
-                    println!("config.json could not be deserialized. Replacing with default ({:?})", err);
-                    let default_config = Configuration::default();
-                    default_config.store(&config_file).unwrap();
-                    default_config
-                },
-                _ => {
-                    panic!("Unable to load the configuration file! {:?}", err);
+            Err(err) => {
+                match err {
+                    ConfigError::Deserialization(err) => {
+                        // Something happend during deserialization, indicating that the file has invalid content
+                        println!("config.json could not be deserialized. Replacing with default \
+                                  ({:?})",
+                                 err);
+                        let default_config = Configuration::default();
+                        default_config.store(&config_file).unwrap();
+                        default_config
+                    }
+                    _ => {
+                        panic!("Unable to load the configuration file! {:?}", err);
+                    }
                 }
-            },
-            Ok(config) => {
-                config
             }
+            Ok(config) => config,
         };
 
         Console {
@@ -142,9 +147,10 @@ impl<'a> Console<'a> {
 
     pub fn process(&mut self, event: &Event) {
         // Used to check if no modifiers are held when toggeling console
-        let no_mods = |keymod: Mod|
-            !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD);
-        
+        let no_mods = |keymod: Mod| {
+            !keymod.intersects(LALTMOD | LCTRLMOD | LSHIFTMOD | RALTMOD | RCTRLMOD | RSHIFTMOD)
+        };
+
         if !self.visible {
             if let Event::KeyDown { scancode, keymod, timestamp, .. } = *event {
                 if no_mods(keymod) && scancode == Some(self.config.get_scancode()) {
@@ -153,7 +159,7 @@ impl<'a> Console<'a> {
                 }
             }
             return;
-        } 
+        }
 
         // Main event processing, only run if visible
         match *event {
@@ -164,7 +170,8 @@ impl<'a> Console<'a> {
             }
             Event::MouseWheel { y, .. } => {
                 if self.visible &&
-                    self.buffer.len() * FONT_SIZE as usize > (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
+                   self.buffer.len() * FONT_SIZE as usize >
+                   (self.size.1 - (FONT_SIZE as u32 * 2)) as usize {
                     self.backbuffer_y += y * 6;
                     if self.backbuffer_y < 0 {
                         self.backbuffer_y = 0;
@@ -476,7 +483,8 @@ impl<'a> Write for Console<'a> {
         let mut text = String::from(std::str::from_utf8(buf).unwrap());
         while !text.is_empty() {
             if let Some(index) = text.find('\n') {
-                let substring: String = text.drain(..index+1).filter(|c| *c != '\n' && *c != '\r').collect();
+                let substring: String =
+                    text.drain(..index + 1).filter(|c| *c != '\n' && *c != '\r').collect();
 
                 if let Some(last) = self.buffer.last_mut() {
                     last.push_str(&substring);
@@ -498,4 +506,3 @@ impl<'a> Write for Console<'a> {
         Ok(())
     }
 }
-

@@ -27,6 +27,7 @@ LCD_CLEAR_LOOP
 STA LCD_MEMORY,Y
 DEY
 BNE LCD_CLEAR_LOOP
+LDY #$00
 
 MAIN
 
@@ -40,8 +41,11 @@ BCS HandleButtonPress   ; Yep, a button was pressed
 JMP IRQ_END
 
 HandleButtonPress
-STA BUTTON  ; Push the button press to memory
-EOR BUTTON  
+ADC #$30
+STA LCD_MEMORY,Y  ; Push the button press to memory
+INY
+
+LDA #$00  
 STA HARDWARE_REG_BUTTON ; Clear hardware register
 
 IRQ_END

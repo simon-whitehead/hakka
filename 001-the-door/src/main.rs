@@ -7,6 +7,7 @@ extern crate vm;
 
 mod button;
 mod keypad;
+mod lcd;
 
 use std::path::Path;
 
@@ -68,7 +69,7 @@ fn main() {
 
         for event in events.poll_iter() {
             vm.console.process(&event);
-            keypad.process(&event, &mut vm.cpu);
+            keypad.process(&event, &ttf_context, &mut renderer, &mut vm.cpu);
 
             if !vm.console.visible {
                 match event {
