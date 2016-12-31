@@ -22,7 +22,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Position, Text, VirtualMachine, CommandSystem, Command};
+use vm::{Position, Text, VirtualMachine, CommandSystem};
 
 const FPS_STEP: u32 = 1000 / 60;
 
