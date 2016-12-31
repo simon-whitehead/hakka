@@ -123,18 +123,14 @@ impl<'a> VirtualMachine<'a> {
     pub fn cycle(&mut self) {
         if let Some(clock_rate) = self.clock_rate {
             let mut n = 0;
+            // This helps check for breakpoints on the entrypoint of an interrupt
+            // request handler
+            if self.cpu.flags.interrupt_disabled && !self.broken {
+                self.check_breakpoint();
+            }
             while (n < clock_rate && !self.broken) || self.step {
                 n += self.cpu.step().expect("SEGFAULT") as u32;
-                if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
-                    self.broken = true;
-                    writeln!(self.console, "").unwrap();
-                    writeln!(self.console, "BREAKPOINT hit at {:04x}", self.cpu.registers.PC).unwrap();
-                    // We are supposed to pass the current timestamp to prevent the keys which are
-                    // used to toggle the console from inputing text into the console. As no key
-                    // is pressed to open the console in this instance, passing the time is not
-                    // strictly necesarry
-                    self.console.toggle(0);
-                }
+                self.check_breakpoint();
                 // If we stepped, dump the local disassembly
                 if self.step {
                     self.dump_local_disassembly();
@@ -142,17 +138,34 @@ impl<'a> VirtualMachine<'a> {
                 self.step = false;
             }
         } else {
+            // This helps check for breakpoints on the entrypoint of an interrupt
+            // request handler
+            if self.cpu.flags.interrupt_disabled && !self.broken {
+                self.check_breakpoint();
+            }
             self.cpu.step().expect("SEGFAULT");
             if self.step {
                 self.dump_local_disassembly();
             }
             self.step = false;
-            if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
-                self.broken = true;
-                writeln!(self.console, "").unwrap();
-                writeln!(self.console, "BREAKPOINT hit at {:04x}", self.cpu.registers.PC).unwrap();
-                self.console.toggle(0);
-            }
+            self.check_breakpoint();
+        }
+    }
+
+    fn check_breakpoint(&mut self) {
+        if self.breakpoints[self.cpu.registers.PC as usize] > 0 {
+            self.broken = true;
+            writeln!(self.console, "").unwrap();
+            writeln!(self.console,
+                     "BREAKPOINT hit at {:04x}",
+                     self.cpu.registers.PC)
+                .unwrap();
+            self.dump_local_disassembly();
+            // We are supposed to pass the current timestamp to prevent the keys which are
+            // used to toggle the console from inputing text into the console. As no key
+            // is pressed to open the console in this instance, passing the time is not
+            // strictly necesarry
+            self.console.toggle(0);
         }
     }
 
@@ -190,8 +203,9 @@ impl<'a> VirtualMachine<'a> {
         } else if parts[0] == "memset" || parts[0] == "set" {
             if parts.len() < 3 {
                 writeln!(self.console,
-                    "ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 in 0x00."
-                ) .unwrap();
+                         "ERR: Requires 2 arguments. Example: memset 0x00 0x01 to store 0x01 in \
+                          0x00.")
+                    .unwrap();
             } else if parts.len() == 3 {
                 if let Ok(dst) = u16::from_str_radix(&parts[1].replace("0x", "")[..], 16) {
                     if let Ok(src) = u8::from_str_radix(&parts[2].replace("0x", "")[..], 16) {
@@ -236,7 +250,7 @@ impl<'a> VirtualMachine<'a> {
                 }
             }
         } else if parts[0] == "registers" || parts[0] == "reg" {
-            self.dump_registers(); 
+            self.dump_registers();
         } else if parts[0] == "flags" {
             self.dump_flags();
         } else if parts[0] == "break" || parts[0] == "b" {
@@ -280,7 +294,9 @@ impl<'a> VirtualMachine<'a> {
     fn enable_memory_monitor(&mut self, input: &str) {
         let parts: Vec<&str> = input.split(' ').collect();
         if parts.len() < 3 {
-            writeln!(self.console, "ERR: Requires 2 arguments. Example: monitor 0x00 0xFF").unwrap();
+            writeln!(self.console,
+                     "ERR: Requires 2 arguments. Example: monitor 0x00 0xFF")
+                .unwrap();
         } else {
             let start = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
             let end = usize::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
@@ -367,18 +383,41 @@ impl<'a> VirtualMachine<'a> {
 
     fn dump_registers(&mut self) {
         writeln!(self.console, " ").unwrap();
-        writeln!(self.console,"A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A).unwrap();
-        writeln!(self.console, "X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X).unwrap();
-        writeln!(self.console, "Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y).unwrap();
-        writeln!(self.console, "PC: {} ({:04X})", self.cpu.registers.PC, self.cpu.registers.PC).unwrap();
-        writeln!(self.console, "S: {} ({:04X})", self.cpu.stack.pointer, self.cpu.stack.pointer).unwrap();
+        writeln!(self.console,
+                 "A: {} ({:04X})",
+                 self.cpu.registers.A,
+                 self.cpu.registers.A)
+            .unwrap();
+        writeln!(self.console,
+                 "X: {} ({:04X})",
+                 self.cpu.registers.X,
+                 self.cpu.registers.X)
+            .unwrap();
+        writeln!(self.console,
+                 "Y: {} ({:04X})",
+                 self.cpu.registers.Y,
+                 self.cpu.registers.Y)
+            .unwrap();
+        writeln!(self.console,
+                 "PC: {} ({:04X})",
+                 self.cpu.registers.PC,
+                 self.cpu.registers.PC)
+            .unwrap();
+        writeln!(self.console,
+                 "S: {} ({:04X})",
+                 self.cpu.stack.pointer,
+                 self.cpu.stack.pointer)
+            .unwrap();
     }
 
     fn dump_flags(&mut self) {
         writeln!(self.console, " ").unwrap();
         writeln!(self.console, "Carry: {}", self.cpu.flags.carry).unwrap();
         writeln!(self.console, "Zero: {}", self.cpu.flags.zero).unwrap();
-        writeln!(self.console, "Interrupts disabled: {}", self.cpu.flags.interrupt_disabled).unwrap();
+        writeln!(self.console,
+                 "Interrupts disabled: {}",
+                 self.cpu.flags.interrupt_disabled)
+            .unwrap();
         writeln!(self.console, "Decimal mode: {}", self.cpu.flags.decimal).unwrap();
         writeln!(self.console, "Break: {}", self.cpu.flags.breakpoint).unwrap();
         writeln!(self.console, "Overflow: {}", self.cpu.flags.overflow).unwrap();
