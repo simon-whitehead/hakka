@@ -4,6 +4,8 @@
 HARDWARE_CODE = $C000
 HARDWARE_MEMORY = $D000
 
+LCD_MEMORY = $D000
+
 HARDWARE_REG_BUTTON = $D0FF
 
 BUTTON = $B000
@@ -12,14 +14,23 @@ BUTTON = $B000
 
 SEI     ; Disable interrupts while we setup the IRQ
 
+; IRQ lives at $C800
 LDA #$C8
 STA $FFFF
 
 CLI
 
-GameLoop
+; Clear the LCD memory
+LDY #$09
+LDA #$00 
+LCD_CLEAR_LOOP
+STA LCD_MEMORY,Y
+DEY
+BNE LCD_CLEAR_LOOP
 
-JMP GameLoop
+EXECUTE
+
+JMP EXECUTE
 
 .ORG $C800
 
