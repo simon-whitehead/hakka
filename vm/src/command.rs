@@ -10,9 +10,9 @@ impl CommandSystem {
             commands: Vec::new()
         };
 
-        // Add default commands
         system.add_command(HelpCommand);
         system.add_command(GreetCommand);
+        // TODO: Implement 'repeat' as default command
 
         system
     }

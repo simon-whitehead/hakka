@@ -8,6 +8,7 @@ extern crate vm;
 mod ship;
 
 use std::path::Path;
+use std::io::Write;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -21,7 +22,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Position, Text, VirtualMachine};
+use vm::{Position, Text, VirtualMachine, CommandSystem, Command};
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -60,7 +61,6 @@ fn main() {
                                 56,
                                 Color::RGBA(0, 0, 0, 255),
                                 font.to_str().unwrap());
-
     let win_text = Text::new(&ttf_context,
                              &mut renderer,
                              "PASSED",
@@ -69,14 +69,19 @@ fn main() {
                              Color::RGBA(0, 0, 0, 255),
                              font.to_str().unwrap());
 
+    let command_system = CommandSystem::new();
+
+    let mut cpu = Cpu::new();
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
-    let cpu = init_cpu(&mut renderer, ship_width);
-    let segments = assemble(local.join("level.asm"));
+    init_cpu_mem(&mut cpu, &mut renderer, ship_width);
+
     let mut vm = VirtualMachine::new(cpu,
-                                     150,
+                                     150, // Clock rate
                                      &ttf_context,
                                      &mut renderer,
                                      font.to_str().unwrap());
+
+    let segments = assemble(local.join("level.asm"));
     vm.load_code_segments(segments);
     vm.cpu.reset();
 
@@ -126,8 +131,11 @@ fn main() {
         }
 
         if !level_complete {
-            if let Some(cmd) = vm.console.try_process_command() {
-                vm.execute_command(cmd);
+            if let Some(cmd) = vm.console.get_next_command() {
+                let success = command_system.execute(cmd, &mut vm.console);
+                if !success {
+                    writeln!(vm.console, "Command not recognized, type 'help' for a list of commands").unwrap();
+                }
             }
             ship.process(&vm.cpu.memory[..]);
 
@@ -190,8 +198,7 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
-    let mut cpu = Cpu::new();
+fn init_cpu_mem(cpu: &mut Cpu, renderer: &mut Renderer, ship_width: u32) {
     cpu.flags.interrupt_disabled = false;
 
     LittleEndian::write_u16(&mut cpu.memory[0..],
@@ -201,8 +208,6 @@ fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
     cpu.memory[0x03] = 0x01;
     cpu.memory[0x05] = 0x05;
     cpu.memory[0x06] = 0x00;
-
-    cpu
 }
 
 fn draw_text_background(renderer: &mut Renderer, color: Color, y: i32) {

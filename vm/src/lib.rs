@@ -15,4 +15,4 @@ mod vm;
 pub use self::position::Position;
 pub use self::text::Text;
 pub use self::vm::VirtualMachine;
-
+pub use self::command::{CommandSystem, Command};

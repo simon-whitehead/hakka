@@ -290,7 +290,7 @@ impl<'a> Console<'a> {
         }
     }
 
-    pub fn try_process_command(&mut self) -> Option<String> {
+    pub fn get_next_command(&mut self) -> Option<String> {
         if !self.last_command.is_empty() {
             let cmd = self.last_command.clone();
             self.last_command.clear();
