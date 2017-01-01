@@ -1,4 +1,16 @@
 
+// TODO:
+// Implement repeat command
+// Add some way for help messages to display parameters
+// Implement missing commands (Need flags, which need to be shown in help)
+//  - monitor | mon (Note: Monitor command needs some way to cancel monitoring)
+//  - memset | set
+//  - memdmp | dmp
+//  - flags
+//  - break | b
+//  - continue | c
+//  - step | s
+
 use std::io::Write;
 use vm::VirtualMachine;
 
@@ -12,8 +24,10 @@ impl CommandSystem {
         };
 
         system.add_command(HelpCommand);
-        system.add_command(GreetCommand);
-        // TODO: Implement 'repeat' as default command
+        system.add_command(ClearCommand);
+        system.add_command(SourceCommand);
+        system.add_command(ListCommand);
+        system.add_command(RegistersCommand);
 
         system
     }
@@ -64,13 +78,17 @@ impl Command for HelpCommand {
         writeln!(vm.console, "Commands:").unwrap();
 
         // Creates strings containing all names, e.g. "help, h, ?"
-        let mut command_names = system.commands.iter().map(|c| c.get_names().join(", ")).collect::<Vec<_>>();
-        let longest_name_length = command_names.iter().max_by_key(|name| name.len()).map(|name| name.len()).unwrap_or(0);
-        let name_padding = longest_name_length + 2;
+        for command in system.commands.iter() {
+            let name = command.get_names().join(", ");
+            writeln!(vm.console, "   {}", name).unwrap();
 
-        for (index, command) in system.commands.iter().enumerate() {
-            let ref name = command_names[index];
-            writeln!(vm.console, "    {0:1$}{2}", name, name_padding, command.get_help()).unwrap();
+            let help = command.get_help();
+            let help_lines = help.trim().lines().map(|line| line.trim()).collect::<Vec<_>>();
+            if !help_lines.is_empty() {
+                for help_line in &help_lines {
+                    writeln!(vm.console, "      {}", help_line).unwrap();;
+                }
+            }
         }
     }
 
@@ -83,24 +101,75 @@ impl Command for HelpCommand {
     } 
 }
 
-struct GreetCommand;
-impl Command for GreetCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
-        if args.is_empty() {
-            writeln!(vm.console, "Hello world!").unwrap();
-        } else {
-            for name in args {
-                writeln!(vm.console, "Hello {}!", name).unwrap();
-            }
-        }
+struct ClearCommand;
+impl Command for ClearCommand {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
+        vm.console.clear();
     }
 
     fn get_names(&self) -> Vec<&str> {
-        vec!["greet", "g"]
+        vec!["clear", "cls"]
     }
 
     fn get_help(&self) -> String {
-        String::from("Greets the given person")
+        String::from("
+            Clears the console
+        ")
+    }
+}
+
+struct SourceCommand;
+impl Command for SourceCommand {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
+        vm.dump_disassembly();
+    }
+
+    fn get_names(&self) -> Vec<&str> {
+        vec!["source"]
+    }
+
+    fn get_help(&self) -> String {
+        String::from("
+            Lists the code currently running in the virtual
+            machine. A '>' symbol indicates the current
+            program counter.
+        ")
+    }
+}
+
+struct ListCommand;
+impl Command for ListCommand {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
+        vm.dump_local_disassembly();
+    }
+
+    fn get_names(&self) -> Vec<&str> {
+        vec!["list"]
+    }
+
+    fn get_help(&self) -> String {
+        String::from("
+            Lists the code surrounding the current
+            program counter.
+        ")
+    }
+}
+
+struct RegistersCommand;
+impl Command for RegistersCommand {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) {
+        vm.dump_registers();
+    }
+
+    fn get_names(&self) -> Vec<&str> {
+        vec!["registers", "reg"]
+    }
+
+    fn get_help(&self) -> String {
+        String::from("
+            Lists the CPU registers and their current
+            values.
+        ")
     }
 }
 

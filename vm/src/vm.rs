@@ -2,57 +2,8 @@
 use rs6502::{CodeSegment, Cpu, Disassembler};
 use sdl2::render::Renderer;
 use sdl2::ttf::Sdl2TtfContext;
-
 use console::Console;
-use command::CommandSystem;
-
 use std::io::Write;
-
-const HELPTEXT: &'static str = "
-
-HAKKA
------
-
-Commands:
-
-break | b: addr
-       - Toggles a breakpoint at a specific address. If the
-         program counter hits this address, execution
-         stops. 
-        
-step | s
-       - Executes the current instruction before breaking
-         execution again.
-
-continue | c
-       - Resumes execution of code within the virtual machine.
-
-list
-       - Lists the code surrounding the current program
-         counter.
-
-memset | set: addr args [args, ...]
-       - memset sets the value of memory directly.
-
-memdmp | dmp: page || start end
-       - memdmp dumps a single memory page, or a specified
-         memory range from <start> to <end> (inclusive).
-
-monitor | mon: start end
-       - monitor dumps the memory between start and end (inclusive)
-         every second. Press ENTER to stop the monitor.
-
-source
-       - Lists the code currently running in the virtual
-         machine. A '>' symbol indicates the current 
-         program counter.
-
-registers | reg
-       - Lists the CPU registers and their current values.
-
-help
-       - Lists this help text.
-";
 
 #[derive(Debug)]
 pub struct MemoryMonitor {
@@ -173,7 +124,7 @@ impl<'a> VirtualMachine<'a> {
         self.broken
     }
 
-    fn dump_disassembly(&mut self) {
+    pub fn dump_disassembly(&mut self) {
         writeln!(self.console, " ").unwrap();
 
         for segment in &self.segments {
@@ -192,7 +143,7 @@ impl<'a> VirtualMachine<'a> {
         writeln!(self.console, " ").unwrap();
     }
 
-    fn dump_local_disassembly(&mut self) {
+    pub fn dump_local_disassembly(&mut self) {
         writeln!(self.console, " ").unwrap();
 
         let result = {
@@ -231,7 +182,7 @@ impl<'a> VirtualMachine<'a> {
         }
     }
 
-    fn dump_memory_range(&mut self, start: u16, end: u16) {
+    pub fn dump_memory_range(&mut self, start: u16, end: u16) {
         let start = start as usize;
         let end = end as usize;
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
@@ -243,16 +194,17 @@ impl<'a> VirtualMachine<'a> {
         writeln!(self.console, "").unwrap();
     }
 
-    fn dump_registers(&mut self) {
+    pub fn dump_registers(&mut self) {
         writeln!(self.console, " ").unwrap();
         writeln!(self.console,"A: {} ({:04X})", self.cpu.registers.A, self.cpu.registers.A).unwrap();
         writeln!(self.console, "X: {} ({:04X})", self.cpu.registers.X, self.cpu.registers.X).unwrap();
         writeln!(self.console, "Y: {} ({:04X})", self.cpu.registers.Y, self.cpu.registers.Y).unwrap();
         writeln!(self.console, "PC: {} ({:04X})", self.cpu.registers.PC, self.cpu.registers.PC).unwrap();
         writeln!(self.console, "S: {} ({:04X})", self.cpu.stack.pointer, self.cpu.stack.pointer).unwrap();
+        writeln!(self.console, " ").unwrap();
     }
 
-    fn dump_flags(&mut self) {
+    pub fn dump_flags(&mut self) {
         writeln!(self.console, " ").unwrap();
         writeln!(self.console, "Carry: {}", self.cpu.flags.carry).unwrap();
         writeln!(self.console, "Zero: {}", self.cpu.flags.zero).unwrap();
