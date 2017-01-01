@@ -57,9 +57,15 @@ impl CommandSystem {
 
 pub trait Command {
     fn execute(&self, args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine);
+
     fn get_names(&self) -> Vec<&str>;
-    fn get_help(&self) -> String {
-        String::from("No help text provided")
+
+    fn get_arg_info(&self) -> Option<&str> {
+        None
+    }
+
+    fn get_help(&self) -> &str {
+        "No help text provided!"
     }
 
     fn matches_name(&self, name: String) -> bool {
@@ -80,7 +86,11 @@ impl Command for HelpCommand {
         // Creates strings containing all names, e.g. "help, h, ?"
         for command in system.commands.iter() {
             let name = command.get_names().join(", ");
-            writeln!(vm.console, "   {}", name).unwrap();
+            write!(vm.console, "   {}", name).unwrap();
+            if let Some(arg_info) = command.get_arg_info() {
+                write!(vm.console, ": {}", arg_info).unwrap();
+            }
+            writeln!(vm.console, "").unwrap();
 
             let help = command.get_help();
             let help_lines = help.trim().lines().map(|line| line.trim()).collect::<Vec<_>>();
@@ -89,6 +99,7 @@ impl Command for HelpCommand {
                     writeln!(vm.console, "      {}", help_line).unwrap();;
                 }
             }
+            writeln!(vm.console, "").unwrap();
         }
     }
 
@@ -96,8 +107,8 @@ impl Command for HelpCommand {
         vec!["help", "h", "?"]
     }
 
-    fn get_help(&self) -> String {
-        String::from("Prints this help message")
+    fn get_help(&self) -> &str {
+        "Prints this help message"
     } 
 }
 
@@ -111,10 +122,8 @@ impl Command for ClearCommand {
         vec!["clear", "cls"]
     }
 
-    fn get_help(&self) -> String {
-        String::from("
-            Clears the console
-        ")
+    fn get_help(&self) -> &str {
+        "Clears the console"
     }
 }
 
@@ -128,12 +137,10 @@ impl Command for SourceCommand {
         vec!["source"]
     }
 
-    fn get_help(&self) -> String {
-        String::from("
-            Lists the code currently running in the virtual
-            machine. A '>' symbol indicates the current
-            program counter.
-        ")
+    fn get_help(&self) -> &str {
+        "Lists the code currently running in the virtual
+         machine. A '>' symbol indicates the current
+         program counter."
     }
 }
 
@@ -147,11 +154,9 @@ impl Command for ListCommand {
         vec!["list"]
     }
 
-    fn get_help(&self) -> String {
-        String::from("
-            Lists the code surrounding the current
-            program counter.
-        ")
+    fn get_help(&self) -> &str {
+        "Lists the code surrounding the current
+         program counter."
     }
 }
 
@@ -165,11 +170,9 @@ impl Command for RegistersCommand {
         vec!["registers", "reg"]
     }
 
-    fn get_help(&self) -> String {
-        String::from("
-            Lists the CPU registers and their current
-            values.
-        ")
+    fn get_help(&self) -> &str {
+        "Lists the CPU registers and their current
+         values."
     }
 }
 
