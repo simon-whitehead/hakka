@@ -55,18 +55,22 @@ impl Lcd {
 
         // Create a text object if we have some text
         if !self.buffer.is_empty() {
-            self.text = Some(Text::new(ttf_context,
-                                       renderer,
-                                       self.buffer.clone(),
-                                       Position::XY(self.x, self.y),
-                                       72,
-                                       Color::RGBA(0, 255, 255, 255),
-                                       self.font.clone()));
+            let mut text_object = Text::new(ttf_context,
+                                            renderer,
+                                            self.buffer.clone(),
+                                            Position::XY(self.x, self.y),
+                                            72,
+                                            Color::RGBA(0, 255, 255, 255),
+                                            self.font.clone());
+
+            text_object.x -= text_object.width as i32;
+
+            self.text = Some(text_object);
         }
     }
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {
-        if let Some(ref text) = self.text {
+        if let Some(ref mut text) = self.text {
             text.render(renderer);
         }
     }
