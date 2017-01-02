@@ -41,6 +41,7 @@ BCS HandleButtonPress   ; Yep, a button was pressed
 JMP IRQ_END
 
 HandleButtonPress
+CLC               ; Always clear the carry flag before adding
 ADC #$30
 STA LCD_MEMORY,Y  ; Push the button press to memory
 INY
