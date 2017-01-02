@@ -44,11 +44,6 @@ CPY #$04
 BEQ IRQ_END
 
 LDA KEYPAD_BUTTON_REGISTER
-CMP #$00    ; Is there a button press happening?
-BCS HandleButtonPress   ; Yep, a button was pressed
-JMP IRQ_END
-
-HandleButtonPress
 CLC               ; Always clear the carry flag before adding
 CLD               ; And the decimal flag just in case
 ADC #$30          ; Convert the number to an ASCII char representing the number
@@ -57,6 +52,8 @@ INY
 
 LDA #$00  
 STA KEYPAD_BUTTON_REGISTER ; Clear hardware register
+STA KEYPAD_ISR             ; Clear the status register
+JMP IRQ_END
 
 IRQ_END
 RTI
