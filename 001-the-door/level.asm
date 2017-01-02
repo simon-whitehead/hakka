@@ -1,12 +1,9 @@
 
 ; Level code for the Hakka level, "The Door"
 
-HARDWARE_CODE = $C000
-HARDWARE_MEMORY = $D000
-
 LCD_MEMORY = $D000
-
-HARDWARE_REG_BUTTON = $D0FF
+KEYPAD_BUTTON_REGISTER = $D0FF
+KEYPAD_ISR = $D100
 
 BUTTON = $B000
 
@@ -35,19 +32,31 @@ JMP MAIN
 
 .ORG $C800
 
-LDA HARDWARE_REG_BUTTON
+; Test what interrupt happened
+BIT KEYPAD_ISR
+BMI HandleKeypad
+JMP IRQ_END
+
+HandleKeypad
+; First lets check if we're already at 4 numbers and skip
+; this entire section if we are
+CPY #$04
+BEQ IRQ_END
+
+LDA KEYPAD_BUTTON_REGISTER
 CMP #$00    ; Is there a button press happening?
 BCS HandleButtonPress   ; Yep, a button was pressed
 JMP IRQ_END
 
 HandleButtonPress
 CLC               ; Always clear the carry flag before adding
+CLD               ; And the decimal flag just in case
 ADC #$30          ; Convert the number to an ASCII char representing the number
 STA LCD_MEMORY,Y  ; Push the button press to memory
 INY
 
 LDA #$00  
-STA HARDWARE_REG_BUTTON ; Clear hardware register
+STA KEYPAD_BUTTON_REGISTER ; Clear hardware register
 
 IRQ_END
 RTI

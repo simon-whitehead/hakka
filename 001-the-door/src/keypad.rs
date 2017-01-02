@@ -28,7 +28,8 @@ const KEY_PADDING: u32 = 25;
 
 // ## Hardware registers ##
 
-const HARDWARE_REG_BUTTON: usize = 0xD0FF;
+const KEYPAD_BUTTON_REGISTER: usize = 0xD0FF;
+const KEYPAD_ISR: usize = 0xD100;
 
 pub struct Keypad {
     lcd: Lcd,
@@ -81,8 +82,9 @@ impl Keypad {
                             if (x > button.rect.left() && x < button.rect.right()) &&
                                (y > button.rect.top() && y < button.rect.bottom()) {
                                 // Yep, we clicked this button, put its value in the hardware register
-                                cpu.memory[HARDWARE_REG_BUTTON] = button.value;
+                                cpu.memory[KEYPAD_BUTTON_REGISTER] = button.value;
                                 // Interrupt the CPU to handle this now
+                                cpu.memory[KEYPAD_ISR] = 0xFF;
                                 cpu.irq();
                                 break;
                             }
