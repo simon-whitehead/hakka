@@ -44,7 +44,7 @@ impl Keypad {
 
         let font = assets.join("FantasqueSansMono-Bold.ttf");
 
-        let lcd = Lcd::new(595, 25);
+        let lcd = Lcd::new(KEYPAD_X + (KEYPAD_WIDTH as i32 / 2), 25);
 
         Keypad {
             lcd: lcd,

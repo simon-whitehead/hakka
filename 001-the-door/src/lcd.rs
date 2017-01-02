@@ -58,12 +58,10 @@ impl Lcd {
             let mut text_object = Text::new(ttf_context,
                                             renderer,
                                             self.buffer.clone(),
-                                            Position::XY(self.x, self.y),
+                                            Position::HorizontalCenter(self.x, self.y),
                                             72,
                                             Color::RGBA(0, 255, 255, 255),
                                             self.font.clone());
-
-            text_object.x -= text_object.width as i32;
 
             self.text = Some(text_object);
         }
