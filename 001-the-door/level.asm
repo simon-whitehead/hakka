@@ -42,7 +42,7 @@ JMP IRQ_END
 
 HandleButtonPress
 CLC               ; Always clear the carry flag before adding
-ADC #$30
+ADC #$30          ; Convert the number to an ASCII char representing the number
 STA LCD_MEMORY,Y  ; Push the button press to memory
 INY
 
