@@ -11,6 +11,7 @@ use vm::{Position, Text};
 
 const LCD_COLOR: Color = Color::RGBA(255, 0, 0, 255);
 const LCD_ISR: usize = 0xD101;
+const LCD_PWR: usize = 0xD800;
 const LCD_CTRL_REGISTER: usize = 0xD801;
 
 enum LcdMode {
@@ -28,6 +29,7 @@ pub struct Lcd {
     text: Option<Text>,
     mode: LcdMode,
     color: Color,
+    power: bool,
 }
 
 impl Lcd {
@@ -46,6 +48,7 @@ impl Lcd {
             buffer: "".into(),
             mode: LcdMode::Text,
             color: LCD_COLOR,
+            power: false,
         }
     }
 
@@ -98,6 +101,8 @@ impl Lcd {
             }
             LcdMode::Unknown => (),
         }
+
+        self.power = cpu.memory[LCD_PWR] != 0
     }
 
     fn get_mode(cpu: &mut Cpu) -> LcdMode {
@@ -110,6 +115,10 @@ impl Lcd {
     }
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {
+        if !self.power {
+            return;
+        }
+
         if let Some(ref mut text) = self.text {
             renderer.set_draw_color(self.color);
             text.render(renderer);

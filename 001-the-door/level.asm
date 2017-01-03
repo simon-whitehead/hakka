@@ -27,6 +27,10 @@ LDA #$FF
 STA LCD_ISR
 BRK
 
+; Enable the LCD
+LDA #$FF
+STA LCD_PWR
+
 ; Enable the keypad
 LDA #$FF
 STA KEYPAD_PWR
