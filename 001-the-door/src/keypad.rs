@@ -28,8 +28,9 @@ const KEY_PADDING: u32 = 25;
 
 // ## Hardware registers ##
 
-const KEYPAD_BUTTON_REGISTER: usize = 0xD0FF;
+const KEYPAD_BUTTON_REGISTER: usize = 0xD901;
 const KEYPAD_ISR: usize = 0xD100;
+const KEYPAD_PWR: usize = 0xD900;
 
 pub struct Keypad {
     lcd: Lcd,
@@ -70,6 +71,12 @@ impl Keypad {
                          ttf_context: &Sdl2TtfContext,
                          mut renderer: &mut Renderer,
                          cpu: &mut Cpu) {
+
+        // If theres no power running to the pin, lets not process any events
+        if cpu.memory[KEYPAD_PWR] == 0 {
+            return;
+        }
+
         match *event {
             Event::MouseButtonDown { mouse_btn, x, y, .. } => {
                 if mouse_btn == MouseButton::Left {
