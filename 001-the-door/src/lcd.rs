@@ -29,6 +29,7 @@ pub struct Lcd {
     text: Option<Text>,
     mode: LcdMode,
     color: Color,
+    back_color: Color,
     power: bool,
 }
 
@@ -47,6 +48,7 @@ impl Lcd {
             buffer: "".into(),
             mode: LcdMode::Text,
             color: LCD_COLOR,
+            back_color: LCD_BACKCOLOR,
             power: false,
         }
     }
@@ -74,18 +76,7 @@ impl Lcd {
 
                 // Create a text object if we have some text
                 if !self.buffer.is_empty() {
-                    let mut text_object =
-                        Text::new(ttf_context,
-                                  renderer,
-                                  self.buffer.clone(),
-                                  Position::HorizontalCenter(self.rect.left() +
-                                                             (self.rect.width() as i32 / 2),
-                                                             self.rect.top() + 10),
-                                  60,
-                                  self.color,
-                                  self.font.clone());
-
-                    self.text = Some(text_object);
+                    self.generate_text(ttf_context, renderer);
                 } else {
                     self.text = None
                 };
@@ -99,12 +90,36 @@ impl Lcd {
                 let g = cpu.memory[addr + 0x01];
                 let b = cpu.memory[addr + 0x02];
 
-                self.color = Color::RGBA(r, g, b, 255);
+                let new_color = Color::RGBA(r, g, b, 255);
+                if new_color != self.color {
+                    self.color = new_color;
+                    self.generate_text(ttf_context, renderer);
+                }
+
+                let r = cpu.memory[addr + 0x03];
+                let g = cpu.memory[addr + 0x04];
+                let b = cpu.memory[addr + 0x05];
+
+                self.back_color = Color::RGBA(r, g, b, 255);
             }
             LcdMode::Unknown => (),
         }
 
         self.power = cpu.memory[LCD_PWR] != 0
+    }
+
+    fn generate_text(&mut self, ttf_context: &Sdl2TtfContext, renderer: &mut Renderer) {
+        let mut text_object = Text::new(ttf_context,
+                                        renderer,
+                                        self.buffer.clone(),
+                                        Position::HorizontalCenter(self.rect.left() +
+                                                                   (self.rect.width() as i32 / 2),
+                                                                   self.rect.top() + 10),
+                                        60,
+                                        self.color,
+                                        self.font.clone());
+
+        self.text = Some(text_object);
     }
 
     fn get_mode(cpu: &mut Cpu) -> LcdMode {
@@ -121,7 +136,7 @@ impl Lcd {
             return;
         }
 
-        renderer.set_draw_color(LCD_BACKCOLOR);
+        renderer.set_draw_color(self.back_color);
         renderer.fill_rect(Rect::new(self.rect.left(),
                                      self.rect.top(),
                                      self.rect.width(),
