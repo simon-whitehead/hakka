@@ -50,7 +50,7 @@ fn main() {
     let cpu = Cpu::new();
     let segments = assemble(local.join("level.asm"));
     let mut vm = VirtualMachine::new(cpu,
-                                     150,
+                                     5,
                                      &ttf_context,
                                      &mut renderer,
                                      default_font.to_str().unwrap());

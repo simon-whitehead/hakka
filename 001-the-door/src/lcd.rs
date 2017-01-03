@@ -9,8 +9,11 @@ use rs6502::Cpu;
 
 use vm::{Position, Text};
 
-const LCD_COLOR: Color = Color::RGBA(192, 192, 192, 255);
-const LCD_BACKCOLOR: Color = Color::RGBA(0, 0, 255, 255);
+const LCD_DISPLAY_BUFFER: usize = 0xD010;
+
+const LCD_COLOR: usize = 0xD000;
+const LCD_BACKCOLOR: usize = 0xD003;
+
 const LCD_ISR: usize = 0xD101;
 const LCD_PWR: usize = 0xD800;
 const LCD_CTRL_REGISTER: usize = 0xD801;
@@ -49,8 +52,8 @@ impl Lcd {
             text: None,
             buffer: "".into(),
             mode: LcdMode::Text,
-            color: LCD_COLOR,
-            back_color: LCD_BACKCOLOR,
+            color: Color::RGBA(255, 255, 255, 255),
+            back_color: Color::RGBA(0, 0, 0, 255),
             power: false,
         }
     }
@@ -58,15 +61,13 @@ impl Lcd {
     pub fn process(&mut self,
                    ttf_context: &Sdl2TtfContext,
                    mut renderer: &mut Renderer,
-                   cpu: &mut Cpu,
-                   addr: u16) {
-        let addr = addr as usize;
+                   cpu: &mut Cpu) {
         match Self::get_mode(cpu) {
             LcdMode::Text => {
                 // Clear the buffer
                 self.buffer.clear();
                 // Read each character from the CPU memory and store it in our buffer
-                for byte in &cpu.memory[addr..] {
+                for byte in &cpu.memory[LCD_DISPLAY_BUFFER..] {
                     // If its a null terminator (lol... see whats happening here?) break out
                     if *byte == 0x00 {
                         break;
@@ -88,9 +89,9 @@ impl Lcd {
                 cpu.irq();
             }
             LcdMode::SetColor => {
-                let r = cpu.memory[addr];
-                let g = cpu.memory[addr + 0x01];
-                let b = cpu.memory[addr + 0x02];
+                let r = cpu.memory[LCD_COLOR];
+                let g = cpu.memory[LCD_COLOR + 0x01];
+                let b = cpu.memory[LCD_COLOR + 0x02];
 
                 let new_color = Color::RGBA(r, g, b, 255);
                 if new_color != self.color {
@@ -98,9 +99,9 @@ impl Lcd {
                     self.generate_text(ttf_context, renderer);
                 }
 
-                let r = cpu.memory[addr + 0x03];
-                let g = cpu.memory[addr + 0x04];
-                let b = cpu.memory[addr + 0x05];
+                let r = cpu.memory[LCD_BACKCOLOR];
+                let g = cpu.memory[LCD_BACKCOLOR + 0x01];
+                let b = cpu.memory[LCD_BACKCOLOR + 0x02];
 
                 self.back_color = Color::RGBA(r, g, b, 255);
             }
@@ -111,17 +112,22 @@ impl Lcd {
     }
 
     fn generate_text(&mut self, ttf_context: &Sdl2TtfContext, renderer: &mut Renderer) {
-        let mut text_object = Text::new(ttf_context,
-                                        renderer,
-                                        self.buffer.clone(),
-                                        Position::HorizontalCenter(self.rect.left() +
-                                                                   (self.rect.width() as i32 / 2),
-                                                                   self.rect.top() + 10),
-                                        LCD_FONT_SIZE,
-                                        self.color,
-                                        self.font.clone());
+        if self.buffer.is_empty() {
+            self.text = None;
+        } else {
+            let mut text_object = Text::new(ttf_context,
+                                            renderer,
+                                            self.buffer.clone(),
+                                            Position::HorizontalCenter(self.rect.left() +
+                                                                       (self.rect.width() as i32 /
+                                                                        2),
+                                                                       self.rect.top() + 10),
+                                            LCD_FONT_SIZE,
+                                            self.color,
+                                            self.font.clone());
 
-        self.text = Some(text_object);
+            self.text = Some(text_object);
+        }
     }
 
     fn get_mode(cpu: &mut Cpu) -> LcdMode {

@@ -108,7 +108,7 @@ impl Keypad {
                    ttf_context: &Sdl2TtfContext,
                    mut renderer: &mut Renderer,
                    cpu: &mut Cpu) {
-        self.lcd.process(ttf_context, renderer, cpu, 0xD000);
+        self.lcd.process(ttf_context, renderer, cpu);
     }
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {
