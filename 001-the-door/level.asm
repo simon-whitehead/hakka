@@ -12,14 +12,6 @@ KEYPAD_BUTTON_REGISTER = $D901
 
 .ORG $C000
 
-SEI     ; Disable interrupts while we setup the IRQ
-
-; IRQ lives at $C800
-LDA #$C8
-STA $FFFF
-
-CLI
-
 ; Clear the LCD memory
 LDA #$01
 STA LCD_CTRL_REGISTER
@@ -90,3 +82,6 @@ JMP IRQ_END
 
 IRQ_END
 RTI
+
+.ORG $FFFF
+.BYTE #$C8
