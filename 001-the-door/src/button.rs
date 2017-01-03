@@ -74,7 +74,7 @@ impl Button {
     }
 
     pub fn render(&self, mut renderer: &mut Renderer) {
-        renderer.set_draw_color(Color::RGBA(255, 255, 255, 255));
+        renderer.set_draw_color(Color::RGBA(192, 192, 192, 255));
         renderer.fill_rect(self.rect);
         self.text_object.render(renderer);
         if let Some(ref subtext) = self.subtext_object {

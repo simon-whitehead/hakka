@@ -9,7 +9,8 @@ use rs6502::Cpu;
 
 use vm::{Position, Text};
 
-const LCD_COLOR: Color = Color::RGBA(255, 0, 0, 255);
+const LCD_COLOR: Color = Color::RGBA(192, 192, 192, 255);
+const LCD_BACKCOLOR: Color = Color::RGBA(0, 0, 255, 255);
 const LCD_ISR: usize = 0xD101;
 const LCD_PWR: usize = 0xD800;
 const LCD_CTRL_REGISTER: usize = 0xD801;
@@ -22,8 +23,7 @@ enum LcdMode {
 }
 
 pub struct Lcd {
-    x: i32,
-    y: i32,
+    pub rect: Rect,
     font: String,
     buffer: String,
     text: Option<Text>,
@@ -33,7 +33,7 @@ pub struct Lcd {
 }
 
 impl Lcd {
-    pub fn new(x: i32, y: i32) -> Lcd {
+    pub fn new(x: i32, y: i32, width: u32, height: u32) -> Lcd {
 
         let local = Search::Parents(3).for_folder("001-the-door").unwrap();
         let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
@@ -41,8 +41,7 @@ impl Lcd {
         let font = assets.join("Segment7Standard.otf");
 
         Lcd {
-            x: x,
-            y: y,
+            rect: Rect::new(x, y, width, height),
             font: font.to_str().unwrap().into(),
             text: None,
             buffer: "".into(),
@@ -75,13 +74,16 @@ impl Lcd {
 
                 // Create a text object if we have some text
                 if !self.buffer.is_empty() {
-                    let mut text_object = Text::new(ttf_context,
-                                                    renderer,
-                                                    self.buffer.clone(),
-                                                    Position::HorizontalCenter(self.x, self.y),
-                                                    72,
-                                                    self.color,
-                                                    self.font.clone());
+                    let mut text_object =
+                        Text::new(ttf_context,
+                                  renderer,
+                                  self.buffer.clone(),
+                                  Position::HorizontalCenter(self.rect.left() +
+                                                             (self.rect.width() as i32 / 2),
+                                                             self.rect.top() + 10),
+                                  60,
+                                  self.color,
+                                  self.font.clone());
 
                     self.text = Some(text_object);
                 } else {
@@ -118,6 +120,12 @@ impl Lcd {
         if !self.power {
             return;
         }
+
+        renderer.set_draw_color(LCD_BACKCOLOR);
+        renderer.fill_rect(Rect::new(self.rect.left(),
+                                     self.rect.top(),
+                                     self.rect.width(),
+                                     self.rect.height()));
 
         if let Some(ref mut text) = self.text {
             renderer.set_draw_color(self.color);

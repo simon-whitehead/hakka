@@ -13,13 +13,13 @@ use rs6502::Cpu;
 use button::Button;
 use lcd::Lcd;
 
-const KEYPAD_COLOR: Color = Color::RGBA(127, 127, 127, 255);
+const KEYPAD_COLOR: Color = Color::RGBA(224, 224, 224, 255);
 
 const KEY_WIDTH: u32 = 133;
 const KEY_HEIGHT: u32 = 93;
 
 const KEYPAD_X: i32 = 120;
-const KEYPAD_Y: i32 = 120;
+const KEYPAD_Y: i32 = 180;
 
 const KEYPAD_WIDTH: u32 = 500;
 const KEYPAD_HEIGHT: u32 = 500;
@@ -45,7 +45,10 @@ impl Keypad {
 
         let font = assets.join("FantasqueSansMono-Bold.ttf");
 
-        let lcd = Lcd::new(KEYPAD_X + (KEYPAD_WIDTH as i32 / 2), 25);
+        let lcd = Lcd::new(KEYPAD_X + KEY_PADDING as i32,
+                           KEYPAD_Y - KEY_HEIGHT as i32,
+                           KEYPAD_WIDTH - (KEY_PADDING * 2),
+                           KEY_HEIGHT - KEY_PADDING);
 
         Keypad {
             lcd: lcd,
@@ -110,6 +113,11 @@ impl Keypad {
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {
         renderer.set_draw_color(KEYPAD_COLOR);
+        renderer.fill_rect(Rect::new(KEYPAD_X,
+                                 self.lcd.rect.top() - KEY_PADDING as i32,
+                                 KEYPAD_WIDTH,
+                                 self.lcd.rect.height() + KEY_PADDING * 2))
+            .unwrap();
         renderer.fill_rect(Rect::new(KEYPAD_X, KEYPAD_Y, KEYPAD_WIDTH, KEYPAD_HEIGHT)).unwrap();
         for button in &self.buttons {
             button.render(renderer);
