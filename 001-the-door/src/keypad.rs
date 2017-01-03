@@ -65,13 +65,11 @@ impl Keypad {
         }
     }
 
-    pub fn process(&mut self,
-                   event: &Event,
-                   ttf_context: &Sdl2TtfContext,
-                   mut renderer: &mut Renderer,
-                   cpu: &mut Cpu) {
-        self.lcd.process(ttf_context, renderer, cpu, 0xD000);
-
+    pub fn process_event(&mut self,
+                         event: &Event,
+                         ttf_context: &Sdl2TtfContext,
+                         mut renderer: &mut Renderer,
+                         cpu: &mut Cpu) {
         match *event {
             Event::MouseButtonDown { mouse_btn, x, y, .. } => {
                 if mouse_btn == MouseButton::Left {
@@ -94,6 +92,13 @@ impl Keypad {
             }
             _ => (),
         }
+    }
+
+    pub fn process(&mut self,
+                   ttf_context: &Sdl2TtfContext,
+                   mut renderer: &mut Renderer,
+                   cpu: &mut Cpu) {
+        self.lcd.process(ttf_context, renderer, cpu, 0xD000);
     }
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {

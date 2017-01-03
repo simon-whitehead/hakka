@@ -69,7 +69,7 @@ fn main() {
 
         for event in events.poll_iter() {
             vm.console.process(&event);
-            keypad.process(&event, &ttf_context, &mut renderer, &mut vm.cpu);
+            keypad.process_event(&event, &ttf_context, &mut renderer, &mut vm.cpu);
 
             if !vm.console.visible {
                 match event {
@@ -84,6 +84,8 @@ fn main() {
                 }
             }
         }
+
+        keypad.process(&ttf_context, &mut renderer, &mut vm.cpu);
 
         if let Some(cmd) = vm.console.try_process_command() {
             vm.execute_command(cmd);

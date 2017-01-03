@@ -9,12 +9,25 @@ use rs6502::Cpu;
 
 use vm::{Position, Text};
 
+const LCD_COLOR: Color = Color::RGBA(255, 0, 0, 255);
+const LCD_ISR: usize = 0xD101;
+const LCD_CTRL_REGISTER: usize = 0xD801;
+
+enum LcdMode {
+    Text,
+    Clear,
+    SetColor,
+    Unknown,
+}
+
 pub struct Lcd {
     x: i32,
     y: i32,
     font: String,
     buffer: String,
     text: Option<Text>,
+    mode: LcdMode,
+    color: Color,
 }
 
 impl Lcd {
@@ -31,6 +44,8 @@ impl Lcd {
             font: font.to_str().unwrap().into(),
             text: None,
             buffer: "".into(),
+            mode: LcdMode::Text,
+            color: LCD_COLOR,
         }
     }
 
@@ -40,35 +55,63 @@ impl Lcd {
                    cpu: &mut Cpu,
                    addr: u16) {
         let addr = addr as usize;
-        // Clear the buffer
-        self.buffer.clear();
-        // Read each character from the CPU memory and store it in our buffer
-        for byte in &cpu.memory[addr..] {
-            // If its a null terminator (lol... see whats happening here?) break out
-            if *byte == 0x00 {
-                break;
+        match Self::get_mode(cpu) {
+            LcdMode::Text => {
+                // Clear the buffer
+                self.buffer.clear();
+                // Read each character from the CPU memory and store it in our buffer
+                for byte in &cpu.memory[addr..] {
+                    // If its a null terminator (lol... see whats happening here?) break out
+                    if *byte == 0x00 {
+                        break;
+                    }
+
+                    // Otherwise, convert it to a character and append it to the buffer
+                    self.buffer.push(*byte as char);
+                }
+
+                // Create a text object if we have some text
+                if !self.buffer.is_empty() {
+                    let mut text_object = Text::new(ttf_context,
+                                                    renderer,
+                                                    self.buffer.clone(),
+                                                    Position::HorizontalCenter(self.x, self.y),
+                                                    72,
+                                                    self.color,
+                                                    self.font.clone());
+
+                    self.text = Some(text_object);
+                } else {
+                    self.text = None
+                };
             }
+            LcdMode::Clear => {
+                cpu.memory[LCD_ISR] = 0xFF;
+                cpu.irq();
+            }
+            LcdMode::SetColor => {
+                let r = cpu.memory[addr];
+                let g = cpu.memory[addr + 0x01];
+                let b = cpu.memory[addr + 0x02];
 
-            // Otherwise, convert it to a character and append it to the buffer
-            self.buffer.push(*byte as char);
+                self.color = Color::RGBA(r, g, b, 255);
+            }
+            LcdMode::Unknown => (),
         }
+    }
 
-        // Create a text object if we have some text
-        if !self.buffer.is_empty() {
-            let mut text_object = Text::new(ttf_context,
-                                            renderer,
-                                            self.buffer.clone(),
-                                            Position::HorizontalCenter(self.x, self.y),
-                                            72,
-                                            Color::RGBA(0, 255, 255, 255),
-                                            self.font.clone());
-
-            self.text = Some(text_object);
+    fn get_mode(cpu: &mut Cpu) -> LcdMode {
+        match *&cpu.memory[LCD_CTRL_REGISTER] {
+            0 => LcdMode::Text,
+            1 => LcdMode::Clear,
+            2 => LcdMode::SetColor,
+            _ => LcdMode::Unknown,
         }
     }
 
     pub fn render(&mut self, mut renderer: &mut Renderer) {
         if let Some(ref mut text) = self.text {
+            renderer.set_draw_color(self.color);
             text.render(renderer);
         }
     }
