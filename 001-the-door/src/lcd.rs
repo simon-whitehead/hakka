@@ -1,3 +1,5 @@
+use byteorder::{ByteOrder, LittleEndian};
+
 use find_folder::Search;
 
 use sdl2::pixels::Color;
@@ -9,7 +11,8 @@ use rs6502::Cpu;
 
 use vm::{Position, Text};
 
-const LCD_DISPLAY_BUFFER: usize = 0xD010;
+const LCD_DISPLAY_INPUT_BUFFER: usize = 0xD010;
+const LCD_DISPLAY_BUFFER_POINTER: usize = 0xD006;
 
 const LCD_COLOR: usize = 0xD000;
 const LCD_BACKCOLOR: usize = 0xD003;
@@ -67,7 +70,9 @@ impl Lcd {
                 // Clear the buffer
                 self.buffer.clear();
                 // Read each character from the CPU memory and store it in our buffer
-                for byte in &cpu.memory[LCD_DISPLAY_BUFFER..] {
+                let addr =
+                    LittleEndian::read_u16(&cpu.memory[LCD_DISPLAY_BUFFER_POINTER..]) as usize;
+                for byte in &cpu.memory[addr..] {
                     // If its a null terminator (lol... see whats happening here?) break out
                     if *byte == 0x00 {
                         break;
