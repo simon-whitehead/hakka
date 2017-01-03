@@ -4,6 +4,7 @@ use sdl2::render::Renderer;
 use sdl2::ttf::Sdl2TtfContext;
 use console::Console;
 use std::io::Write;
+use std::ops::Range;
 
 #[derive(Debug)]
 pub struct MemoryMonitor {
@@ -106,22 +107,40 @@ impl<'a> VirtualMachine<'a> {
         }
     }
 
-    fn enable_memory_monitor(&mut self, input: &str) {
-        let parts: Vec<&str> = input.split(' ').collect();
-        if parts.len() < 3 {
-            writeln!(self.console, "ERR: Requires 2 arguments. Example: monitor 0x00 0xFF").unwrap();
-        } else {
-            let start = usize::from_str_radix(&parts[1].replace("0x", "")[..], 16).unwrap();
-            let end = usize::from_str_radix(&parts[2].replace("0x", "")[..], 16).unwrap();
-
-            self.monitor.start_addr = start;
-            self.monitor.end_addr = end;
-            self.monitor.enabled = true;
-        }
+    pub fn enable_memory_monitor(&mut self, range: Range<usize>)  { 
+        self.monitor.start_addr = range.start;
+        self.monitor.end_addr = range.end;
+        self.monitor.enabled = true;
+    }
+    pub fn is_memory_monitor_enabled(&self) -> bool {
+        self.monitor.enabled
+    }
+    pub fn disable_memory_monitor(&mut self) {
+        self.monitor.enabled = false;
     }
 
     pub fn is_debugging(&self) -> bool {
         self.broken
+    }
+
+    pub fn break_execution(&mut self) {
+        self.broken = true;
+    }
+    pub fn continue_execution(&mut self) {
+        self.broken = false;
+    }
+    pub fn step_execution(&mut self) {
+        self.broken = true;
+        self.step = true;
+    }
+    pub fn toggle_breakpoint(&mut self, address: usize) -> bool {
+        if self.breakpoints[address] > 0 {
+            self.breakpoints[address] = 0;
+            return false;
+        } else {
+            self.breakpoints[address] = 1;
+            return true;
+        }
     }
 
     pub fn dump_disassembly(&mut self) {
@@ -182,9 +201,7 @@ impl<'a> VirtualMachine<'a> {
         }
     }
 
-    pub fn dump_memory_range(&mut self, start: u16, end: u16) {
-        let start = start as usize;
-        let end = end as usize;
+    pub fn dump_memory_range(&mut self, start: usize, end: usize) {
         for chunk in self.cpu.memory[start..end + 0x01].chunks(8) {
             for b in chunk {
                 write!(self.console, "{:02X} ", *b).unwrap();
