@@ -15,6 +15,8 @@ const LCD_ISR: usize = 0xD101;
 const LCD_PWR: usize = 0xD800;
 const LCD_CTRL_REGISTER: usize = 0xD801;
 
+const LCD_FONT_SIZE: u16 = 48;
+
 enum LcdMode {
     Text,
     Clear,
@@ -115,7 +117,7 @@ impl Lcd {
                                         Position::HorizontalCenter(self.rect.left() +
                                                                    (self.rect.width() as i32 / 2),
                                                                    self.rect.top() + 10),
-                                        60,
+                                        LCD_FONT_SIZE,
                                         self.color,
                                         self.font.clone());
 
