@@ -1,7 +1,4 @@
 
-// TODO:
-// Implement repeat command
-
 use std::io::Write;
 use vm::VirtualMachine;
 
@@ -383,7 +380,7 @@ impl Command for BreakCommand {
          If the program counter hits this address, execution
          stops. If no address is specified, execution will
          be stopped at the current point, without inserting
-         a program counter."
+         a breakpoint."
     }
 }
 
