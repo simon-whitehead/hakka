@@ -11,8 +11,10 @@ mod text;
 mod config;
 mod command;
 mod vm;
+mod game_core;
 
 pub use self::position::Position;
 pub use self::text::Text;
 pub use self::vm::VirtualMachine;
 pub use self::command::{CommandSystem, Command};
+pub use self::game_core::GameCore;
