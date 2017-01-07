@@ -247,10 +247,6 @@ impl<'a> Console<'a> {
         if !command.is_empty() {
             self.command_history.push(command.clone());
             self.last_command = command.clone();
-
-            if command == "exit" {
-                std::process::exit(0);
-            }
         }
     }
 

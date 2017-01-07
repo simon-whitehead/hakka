@@ -1,4 +1,5 @@
 
+use std;
 use std::io::Write;
 use vm::VirtualMachine;
 
@@ -25,6 +26,7 @@ impl CommandSystem {
         system.add_command(MemdmpCommand);
         system.add_command(MemsetCommand);
         system.add_command(MonitorCommand);
+        system.add_command(ExitCommand);
 
         system
     }
@@ -452,3 +454,17 @@ impl Command for StepCommand {
     }
 }
 
+struct ExitCommand;
+impl Command for ExitCommand {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, _vm: &mut VirtualMachine) -> CommandResult {
+        std::process::exit(0);
+    }
+
+    fn get_names(&self) -> Vec<&str> {
+        vec!["exit"]
+    }
+
+    fn get_help(&self) -> &str {
+        "Quits the game"
+    }
+}
