@@ -34,16 +34,15 @@ impl<'a> GameCore<'a> {
     }
 
     pub fn process_event(&mut self, event: &Event) {
-        if self.unblock_event.is_some() {
-        }
         match *event {
             // Stop a blocking event
             Event::KeyDown { keycode, keymod, .. }
-            if keycode == Some(Keycode::C) &&
-               keymod.intersects(LCTRLMOD | RCTRLMOD) => {
+            if (keycode == Some(Keycode::C) && keymod.intersects(LCTRLMOD | RCTRLMOD) || keycode == Some(Keycode::Return)) &&
+               self.unblock_event.is_some() => {
                 if let Some(ref unblock_event) = self.unblock_event {
                     unblock_event(&mut self.vm);
                 }
+                self.vm.console.input_blocked = false;
                 self.unblock_event = None;
             },
             // Let the console handle the event
@@ -61,6 +60,7 @@ impl<'a> GameCore<'a> {
 
             if unblock_event.is_some() {
                 self.unblock_event = unblock_event;
+                self.vm.console.input_blocked = true;
             } else {
                 self.unblock_event = None;
             }
