@@ -2,7 +2,7 @@
 use std::io::Write;
 
 use vm::VirtualMachine;
-use command::{CommandSystem, UnblockEvent};
+use command::{CommandSystem, UnblockEvent, CommandResult};
 
 use sdl2::render::Renderer;
 use sdl2::ttf::Sdl2TtfContext;
@@ -53,9 +53,9 @@ impl<'a> GameCore<'a> {
 
     pub fn update(&mut self) {
         if let Some(cmd) = self.vm.console.get_next_command() {
-            let (sucess, unblock_event) = self.command_system.execute(cmd, &mut self.vm);
+            let (result, unblock_event) = self.command_system.execute(cmd, &mut self.vm);
 
-            if !sucess {
+            if let CommandResult::NotFound = result {
                 writeln!(self.vm.console, "Command not recognized, type 'help' for a list of commands").unwrap();
             }
 

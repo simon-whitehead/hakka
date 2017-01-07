@@ -35,7 +35,7 @@ impl CommandSystem {
         self.commands.push(Box::new(command));
     }
 
-    pub fn execute<S>(&self, command: S, mut vm: &mut VirtualMachine) -> (bool, Option<UnblockEvent>)
+    pub fn execute<S>(&self, command: S, mut vm: &mut VirtualMachine) -> (CommandResult, Option<UnblockEvent>)
         where S: Into<String>
     {
         let command = command.into();
@@ -43,23 +43,28 @@ impl CommandSystem {
 
         for command in self.commands.iter() {
             if command.matches_name(parts[0].clone()) {
-                let block = command.execute(parts[1..].to_owned(), &self, &mut vm);
-                if block {
-                    return (true, Some(command.on_unblock_event()));
+                let result = command.execute(parts[1..].to_owned(), &self, &mut vm);
+                if let CommandResult::SucessBlock = result {
+                    return (result, Some(command.on_unblock_event()));
                 } else {
-                    return (true, None);
+                    return (result, None);
                 }
             }
         }
 
-        (false, None)
+        (CommandResult::NotFound, None)
     }
 }
 
+pub enum CommandResult {
+    NotFound,
+    InvalidArgs,
+    Sucess,
+    SucessBlock,
+}
+
 pub trait Command {
-    /// Tries to execute this command with the given list of arguments
-    /// Returns true if the command should block
-    fn execute(&self, args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine) -> bool;
+    fn execute(&self, args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult;
 
     fn get_names(&self) -> Vec<&str>;
 
@@ -88,7 +93,7 @@ pub trait Command {
 
 struct HelpCommand;
 impl Command for HelpCommand {
-    fn execute(&self, _args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         writeln!(vm.console, "Commands:").unwrap();
 
         // Creates strings containing all names, e.g. "help, h, ?"
@@ -109,7 +114,7 @@ impl Command for HelpCommand {
             }
         }
 
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -123,9 +128,9 @@ impl Command for HelpCommand {
 
 struct ClearCommand;
 impl Command for ClearCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.console.clear();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -139,9 +144,9 @@ impl Command for ClearCommand {
 
 struct SourceCommand;
 impl Command for SourceCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.dump_disassembly();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -157,9 +162,9 @@ impl Command for SourceCommand {
 
 struct ListCommand;
 impl Command for ListCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.dump_local_disassembly();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -174,9 +179,9 @@ impl Command for ListCommand {
 
 struct RegistersCommand;
 impl Command for RegistersCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.dump_registers();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -191,34 +196,35 @@ impl Command for RegistersCommand {
 
 struct MonitorCommand;
 impl Command for MonitorCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         if args.len() != 2 {
             writeln!(vm.console, "Expected 2 arguments, found {}", args.len()).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
 
         let start = usize::from_str_radix(&args[0].replace("0x", "")[..], 16);
         if start.is_err() {
             writeln!(vm.console, "Expected hexadecimal memory address, found {}", args[0]).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
         let start = start.unwrap();
         
         let end = usize::from_str_radix(&args[1].replace("0x", "")[..], 16);
         if end.is_err() {
             writeln!(vm.console, "Expected hexadecimal memory address, found {}", args[1]).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
         let end = end.unwrap();
 
         vm.enable_memory_monitor(start..end);
 
-        true
+        CommandResult::SucessBlock
     }
 
     fn on_unblock_event(&self) -> UnblockEvent {
         Box::new(|vm| {
             vm.disable_memory_monitor();
+            writeln!(vm.console, "Disabled memory monitor").unwrap();
         })
     }
 
@@ -239,18 +245,18 @@ impl Command for MonitorCommand {
 
 struct MemsetCommand;
 impl Command for MemsetCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         if args.len() < 2 {
             writeln!(vm.console,
                 "Expected 2 arguments. E.g.: memset 0x00 0x01 stores 0x01 at address 0x00"
             ).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
 
         let start = usize::from_str_radix(&args[0].replace("0x", "")[..], 16);
         if start.is_err() {
             writeln!(vm.console, "Expected hexadecimal memory address, found {}", args[0]).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
         let start = start.unwrap();
 
@@ -260,7 +266,7 @@ impl Command for MemsetCommand {
                 let byte = u8::from_str_radix(&args[index].replace("0x", "")[..], 16);
                 if byte.is_err() {
                     writeln!(vm.console, "Expected hexadecimal byte, found {}", args[index]).unwrap();
-                    return false;
+                    return CommandResult::InvalidArgs;
                 }
                 bytes.push(byte.unwrap());
             }
@@ -271,7 +277,7 @@ impl Command for MemsetCommand {
             vm.cpu.memory[start + index] = *byte;
         }
 
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -291,10 +297,10 @@ impl Command for MemsetCommand {
 
 struct MemdmpCommand;
 impl Command for MemdmpCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         if args.is_empty() || args.len() > 2 {
             writeln!(vm.console, "Expected either 1 or 2 arguments, found {}", args.len()).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
 
         // Dump a page
@@ -302,7 +308,7 @@ impl Command for MemdmpCommand {
             let page = usize::from_str_radix(&args[0].replace("0x", "")[..], 16);
             if page.is_err() {
                 writeln!(vm.console, "Expected page index, found {}", args[0]).unwrap();
-                return false;
+                return CommandResult::InvalidArgs;
             }
             let page = page.unwrap();
 
@@ -313,21 +319,21 @@ impl Command for MemdmpCommand {
             let start = usize::from_str_radix(&args[0].replace("0x", "")[..], 16);
             if start.is_err() {
                 writeln!(vm.console, "Expected hexadecimal memory address, found {}", args[0]).unwrap();
-                return false;
+                return CommandResult::InvalidArgs;
             }
             let start = start.unwrap();
 
             let end = usize::from_str_radix(&args[1].replace("0x", "")[..], 16);
             if end.is_err() {
                 writeln!(vm.console, "Expected hexadecimal memory address, found {}", args[1]).unwrap();
-                return false;
+                return CommandResult::InvalidArgs;
             }
             let end = end.unwrap();
 
             vm.dump_memory_range(start, end);
         }
 
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -346,9 +352,9 @@ impl Command for MemdmpCommand {
 
 struct FlagsCommand;
 impl Command for FlagsCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.dump_flags();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -362,10 +368,10 @@ impl Command for FlagsCommand {
 
 struct BreakCommand;
 impl Command for BreakCommand {
-    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         if args.len() > 1 {
             writeln!(vm.console, "Expected 0 or 1 arguments, found {}", args.len()).unwrap();
-            return false;
+            return CommandResult::InvalidArgs;
         }
 
         // Break at the given address
@@ -392,7 +398,7 @@ impl Command for BreakCommand {
             writeln!(vm.console, "Breaking execution at {:04X}", vm.cpu.registers.PC).unwrap();
         }
 
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -414,9 +420,9 @@ impl Command for BreakCommand {
 
 struct ContinueCommand;
 impl Command for ContinueCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.continue_execution();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
@@ -431,9 +437,9 @@ impl Command for ContinueCommand {
 
 struct StepCommand;
 impl Command for StepCommand {
-    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> bool {
+    fn execute(&self, _args: Vec<String>, _system: &CommandSystem, vm: &mut VirtualMachine) -> CommandResult {
         vm.step_execution();
-        false
+        CommandResult::Sucess
     }
 
     fn get_names(&self) -> Vec<&str> {
