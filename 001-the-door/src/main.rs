@@ -47,7 +47,11 @@ fn main() {
 
     let default_font = assets.join("FantasqueSansMono-Bold.ttf");
 
-    let cpu = Cpu::new();
+    let mut cpu = Cpu::new();
+    cpu.memory[0xF000] = 5;
+    cpu.memory[0xF001] = 4;
+    cpu.memory[0xF002] = 7;
+    cpu.memory[0xF003] = 7;
     let segments = assemble(local.join("level.asm"));
     let mut vm = VirtualMachine::new(cpu,
                                      5,

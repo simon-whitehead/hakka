@@ -97,7 +97,7 @@ STY LCD_BUFFER_SIZE
 JMP HandleKeypadEnd
 
 HandleSubmission
-JSR DenyAccess
+JSR Admin
 
 HandleKeypadEnd
 LDA #$00  
@@ -121,11 +121,27 @@ JMP IRQ_END
 IRQ_END
 RTI
 
-DenyAccess
+Admin
 PHA
 TYA
 PHA
 
+; CMP
+LDY #$00
+AdminLoop
+LDA $F000,Y
+; Check for end
+CMP #$00
+BEQ AllowAccess
+ADC #$30
+CMP LCD_DISPLAY_INPUT_BUFFER,Y
+BNE DenyAccess
+INY
+JMP AdminLoop
+
+AdminEnd
+
+DenyAccess
 ; Set the font color to WHITE and the background to RED
 LDA #$02
 STA LCD_CTRL_REGISTER
@@ -160,6 +176,41 @@ TAY
 PLA
 RTS
 
+AllowAccess
+; Set the font color to WHITE and the background to GREEN
+LDA #$02
+STA LCD_CTRL_REGISTER
+LDA #$FF
+STA LCD_MEMORY
+LDY #1
+STA LCD_MEMORY,Y
+LDY #2
+STA LCD_MEMORY,Y
+LDA #$00
+LDY #3
+STA LCD_MEMORY,Y
+LDA #$FF
+LDY #4
+STA LCD_MEMORY,Y
+LDY #5
+STA LCD_MEMORY,Y
+LDA #$00
+STA LCD_CTRL_REGISTER
+; Point the buffer at the ACCESS GRANTED message (TODO)
+LDA #$20
+STA LCD_DISPLAY_BUFFER_POINTER
+LDY #1
+LDA #$E0
+STA LCD_DISPLAY_BUFFER_POINTER,Y
+; Finally, clear the LCD display
+JSR ClearLcd
+
+AllowAccessEnd
+PLA
+TAY
+PLA
+RTS
+
 .ORG $D006
 .BYTE #$10, #$D0
 
@@ -167,6 +218,8 @@ RTS
 .BYTE #$C0, #$C0, #$C0, #$00, #$00, #$FF    ; LCD Properties
 .ORG $E010
 .BYTE #$41, #$43, #$43, #$45, #$53, #$53, #$20, #$44, #$45, #$4E, #$49, #$45, #$44  ; "ACCESS DENIED"
+.ORG $E020
+.BYTE #$41, #$43, #$43, #$45, #$53, #$53, #$20, #$47, #$52, #$41, #$4E, #$54, #$45, #$44  ; "ACCESS GRANTED"
 
 .ORG $FFFF
 .BYTE #$C8
