@@ -129,11 +129,13 @@ PHA
 ; CMP
 LDY #$00
 AdminLoop
+CLC
+CLD
 LDA $F000,Y
 ; Check for end
 CMP #$00
 BEQ AllowAccess
-ADC #$30
+ADC #$2F
 CMP LCD_DISPLAY_INPUT_BUFFER,Y
 BNE DenyAccess
 INY
