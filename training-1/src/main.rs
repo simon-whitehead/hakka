@@ -8,7 +8,6 @@ extern crate vm;
 mod ship;
 
 use std::path::Path;
-use std::io::Write;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -22,7 +21,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Position, Text, VirtualMachine, CommandSystem, GameCore};
+use vm::{Position, Text, GameCore};
 
 const FPS_STEP: u32 = 1000 / 60;
 
