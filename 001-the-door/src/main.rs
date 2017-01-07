@@ -11,6 +11,8 @@ mod lcd;
 
 use std::path::Path;
 
+use byteorder::{ByteOrder, LittleEndian};
+
 use find_folder::Search;
 
 use sdl2::event::Event;
@@ -48,10 +50,6 @@ fn main() {
     let default_font = assets.join("FantasqueSansMono-Bold.ttf");
 
     let mut cpu = Cpu::new();
-    cpu.memory[0xF000] = 5;
-    cpu.memory[0xF001] = 4;
-    cpu.memory[0xF002] = 7;
-    cpu.memory[0xF003] = 7;
     let segments = assemble(local.join("level.asm"));
     let mut vm = VirtualMachine::new(cpu,
                                      5,
@@ -60,6 +58,13 @@ fn main() {
                                      default_font.to_str().unwrap());
     vm.load_code_segments(segments);
     vm.cpu.reset();
+    let mask = ((((0x0A - 0b11) * (0b10 * 0x4)) - (0x31)) as u32) *
+               (((((0x01 << 0x03) | 0b1) * 0x55555556 as u64) >> 0x20) as u16 *
+                (((0x01 << 0b11) as u8).pow(0b10) as u16) as u16 - 1) as u32;
+    vm.cpu.memory[0b1111000000000000] = mask.to_string().as_bytes()[0] - ('0' as u8);
+    vm.cpu.memory[0b1111000000000001] = mask.to_string().as_bytes()[1] - ('0' as u8);
+    vm.cpu.memory[0b1111000000000010] = mask.to_string().as_bytes()[2] - ('0' as u8);
+    vm.cpu.memory[0b1111000000000011] = mask.to_string().as_bytes()[3] - ('0' as u8);
     vm.cpu.flags.interrupt_disabled = false;
 
     let mut keypad = Keypad::new(&ttf_context, &mut renderer);
