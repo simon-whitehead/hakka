@@ -21,7 +21,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Renderer;
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::VirtualMachine;
+use vm::{VirtualMachine, GameCore};
 
 use keypad::Keypad;
 
@@ -48,24 +48,19 @@ fn main() {
     let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
 
     let default_font = assets.join("FantasqueSansMono-Bold.ttf");
+    let mut game_core = GameCore::new(&ttf_context, &mut renderer, default_font.to_str().unwrap());
 
-    let mut cpu = Cpu::new();
     let segments = assemble(local.join("level.asm"));
-    let mut vm = VirtualMachine::new(cpu,
-                                     5,
-                                     &ttf_context,
-                                     &mut renderer,
-                                     default_font.to_str().unwrap());
-    vm.load_code_segments(segments);
-    vm.cpu.reset();
+    game_core.vm.load_code_segments(segments);
+    game_core.vm.cpu.reset();
     let mask = ((((0x0A - 0b11) * (0b10 * 0x4)) - (0x31)) as u32) *
                (((((0x01 << 0x03) | 0b1) * 0x55555556 as u64) >> 0x20) as u16 *
                 (((0x01 << 0b11) as u8).pow(0b10) as u16) as u16 - 1) as u32;
-    vm.cpu.memory[0b1111000000000000] = mask.to_string().as_bytes()[0] - ('0' as u8);
-    vm.cpu.memory[0b1111000000000001] = mask.to_string().as_bytes()[1] - ('0' as u8);
-    vm.cpu.memory[0b1111000000000010] = mask.to_string().as_bytes()[2] - ('0' as u8);
-    vm.cpu.memory[0b1111000000000011] = mask.to_string().as_bytes()[3] - ('0' as u8);
-    vm.cpu.flags.interrupt_disabled = false;
+    game_core.vm.cpu.memory[0b1111000000000000] = mask.to_string().as_bytes()[0] - ('0' as u8);
+    game_core.vm.cpu.memory[0b1111000000000001] = mask.to_string().as_bytes()[1] - ('0' as u8);
+    game_core.vm.cpu.memory[0b1111000000000010] = mask.to_string().as_bytes()[2] - ('0' as u8);
+    game_core.vm.cpu.memory[0b1111000000000011] = mask.to_string().as_bytes()[3] - ('0' as u8);
+    game_core.vm.cpu.flags.interrupt_disabled = false;
 
     let mut keypad = Keypad::new(&ttf_context, &mut renderer);
 
@@ -77,10 +72,10 @@ fn main() {
     'running: loop {
 
         for event in events.poll_iter() {
-            vm.console.process(&event);
-            keypad.process_event(&event, &ttf_context, &mut renderer, &mut vm.cpu);
+            game_core.process_event(&event);
+            keypad.process_event(&event, &ttf_context, &mut renderer, &mut game_core.vm.cpu);
 
-            if !vm.console.visible {
+            if !game_core.vm.console.visible {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyDown { keycode, .. } => {
@@ -94,33 +89,29 @@ fn main() {
             }
         }
 
-        keypad.process(&ttf_context, &mut renderer, &mut vm.cpu);
-
-        if let Some(cmd) = vm.console.try_process_command() {
-            vm.execute_command(cmd);
-        }
+        keypad.process(&ttf_context, &mut renderer, &mut game_core.vm.cpu);
 
         let now = sdl_context.timer().unwrap().ticks();
         let delta = now - last_fps;
         if delta < FPS_STEP {
             sdl_context.timer().unwrap().delay(FPS_STEP - delta);
         } else {
-            vm.cycle();
+            game_core.update();
 
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             renderer.clear();
 
             // Render game here
             keypad.render(&mut renderer);
-            vm.render(&mut renderer);
+            game_core.vm.render(&mut renderer);
             renderer.present();
             last_fps = now;
         }
 
         // Dump the CPU memory at 1 second intervals if the monitor is enabled
         let delta = now - monitor_last;
-        if delta > 1000 && vm.monitor.enabled {
-            vm.dump_memory();
+        if delta > 1000 && game_core.vm.monitor.enabled {
+            game_core.vm.dump_memory();
             monitor_last = now;
         }
     }

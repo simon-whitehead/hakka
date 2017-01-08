@@ -21,7 +21,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Renderer, TextureQuery};
 
 use rs6502::{Assembler, CodeSegment, Cpu};
-use vm::{Position, Text, VirtualMachine};
+use vm::{Position, Text, GameCore};
 
 const FPS_STEP: u32 = 1000 / 60;
 
@@ -60,7 +60,6 @@ fn main() {
                                 56,
                                 Color::RGBA(0, 0, 0, 255),
                                 font.to_str().unwrap());
-
     let win_text = Text::new(&ttf_context,
                              &mut renderer,
                              "PASSED",
@@ -69,16 +68,14 @@ fn main() {
                              Color::RGBA(0, 0, 0, 255),
                              font.to_str().unwrap());
 
+    let mut game_core = GameCore::new(&ttf_context, &mut renderer, font.to_str().unwrap()); 
+
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
-    let cpu = init_cpu(&mut renderer, ship_width);
+    init_cpu_mem(&mut game_core.vm.cpu, &mut renderer, ship_width);
+
     let segments = assemble(local.join("level.asm"));
-    let mut vm = VirtualMachine::new(cpu,
-                                     150,
-                                     &ttf_context,
-                                     &mut renderer,
-                                     font.to_str().unwrap());
-    vm.load_code_segments(segments);
-    vm.cpu.reset();
+    game_core.vm.load_code_segments(segments);
+    game_core.vm.cpu.reset();
 
     let mut events = sdl_context.event_pump().unwrap();
 
@@ -92,16 +89,16 @@ fn main() {
     'running: loop {
 
         for event in events.poll_iter() {
-            vm.console.process(&event);
+            game_core.process_event(&event);
 
-            if !vm.console.visible {
+            if !game_core.vm.console.visible {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyUp { keycode, .. } => {
                         match keycode {
                             Some(Keycode::Up) |
                             Some(Keycode::Down) => {
-                                vm.cpu.memory[0x04] = 0;
+                                game_core.vm.cpu.memory[0x04] = 0;
                             }
                             _ => (),
                         }
@@ -112,10 +109,10 @@ fn main() {
 
                             // Movement
                             Some(Keycode::Up) => {
-                                vm.cpu.memory[0x04] = 38;
+                                game_core.vm.cpu.memory[0x04] = 38;
                             }
                             Some(Keycode::Down) => {
-                                vm.cpu.memory[0x04] = 40;
+                                game_core.vm.cpu.memory[0x04] = 40;
                             }
                             _ => (),
                         }
@@ -126,15 +123,12 @@ fn main() {
         }
 
         if !level_complete {
-            if let Some(cmd) = vm.console.try_process_command() {
-                vm.execute_command(cmd);
-            }
-            ship.process(&vm.cpu.memory[..]);
+            ship.process(&game_core.vm.cpu.memory[..]);
 
             // Pull the ship back so it can't go past a certain spot
-            if ship.y <= 0x190 && ship.y >= 0x100 && vm.cpu.memory[0x04] != 0 {
-                vm.cpu.memory[0x02] = 0x90;
-                vm.cpu.memory[0x03] = 0x01;
+            if ship.y <= 0x190 && ship.y >= 0x100 && game_core.vm.cpu.memory[0x04] != 0 {
+                game_core.vm.cpu.memory[0x02] = 0x90;
+                game_core.vm.cpu.memory[0x03] = 0x01;
             }
         }
 
@@ -143,24 +137,24 @@ fn main() {
         if delta < FPS_STEP {
             sdl_context.timer().unwrap().delay(FPS_STEP - delta);
         } else {
-            vm.cycle();
+            game_core.update();
 
             // Rendering only the background when interrupts are disabled results in a horrible
             // flickering; therefore only render when we're either in single stepping mode or
             // interrupts are enabled
-            if vm.is_debugging() || !vm.cpu.flags.interrupt_disabled {
+            if game_core.vm.is_debugging() || !game_core.vm.cpu.flags.interrupt_disabled {
                 renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 renderer.clear();
 
                 // Render complete game screen only if interrupts are enabled
-                if !vm.cpu.flags.interrupt_disabled {
+                if !game_core.vm.cpu.flags.interrupt_disabled {
                     if level_complete {
                         draw_passed_background(&mut renderer);
                         win_text.render(&mut renderer);
                     }
                     draw_finish_background(&mut renderer);
                     finish_text.render(&mut renderer);
-                    if vm.cpu.memory[0x07] > 0 {
+                    if game_core.vm.cpu.memory[0x07] > 0 {
                         ship.render_flame(&mut renderer);
                     }
                     ship.render(&mut renderer);
@@ -168,7 +162,7 @@ fn main() {
                         level_complete = true;
                     }
                 }
-                vm.render(&mut renderer);
+                game_core.vm.render(&mut renderer);
                 renderer.present();
                 last_fps = now;
             }
@@ -176,8 +170,8 @@ fn main() {
 
         // Dump the CPU memory at 1 second intervals if the monitor is enabled
         let delta = now - monitor_last;
-        if delta > 1000 && vm.monitor.enabled {
-            vm.dump_memory();
+        if delta > 1000 && game_core.vm.monitor.enabled {
+            game_core.vm.dump_memory();
             monitor_last = now;
         }
     }
@@ -190,8 +184,7 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     assembler.assemble_file(path, 0xC000).unwrap()
 }
 
-fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
-    let mut cpu = Cpu::new();
+fn init_cpu_mem(cpu: &mut Cpu, renderer: &mut Renderer, ship_width: u32) {
     cpu.flags.interrupt_disabled = false;
 
     LittleEndian::write_u16(&mut cpu.memory[0..],
@@ -201,8 +194,6 @@ fn init_cpu(renderer: &mut Renderer, ship_width: u32) -> Cpu {
     cpu.memory[0x03] = 0x01;
     cpu.memory[0x05] = 0x05;
     cpu.memory[0x06] = 0x00;
-
-    cpu
 }
 
 fn draw_text_background(renderer: &mut Renderer, color: Color, y: i32) {
