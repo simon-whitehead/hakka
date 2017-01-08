@@ -30,6 +30,7 @@ const FONT_SIZE: u16 = 18;
 
 pub struct Console<'a> {
     pub visible: bool,
+    pub input_blocked: bool,
     visible_start_time: u32, /* Used to ensure that the KeyDown event that opens the console does not trigger text input */
 
     config: Configuration,
@@ -47,8 +48,6 @@ pub struct Console<'a> {
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
     font: Font<'a>,
-    ctrl: bool, // Tracks the Ctrl key being pressed
-    shift: bool, // Tracks the Shift key being pressed
 }
 
 impl<'a> Console<'a> {
@@ -135,8 +134,7 @@ impl<'a> Console<'a> {
             ttf_context: ttf_context,
             size: (width / 2, height),
             font: font,
-            ctrl: false,
-            shift: false,
+            input_blocked: false,
         }
     }
 
@@ -158,7 +156,7 @@ impl<'a> Console<'a> {
         // Main event processing, only run if visible
         match *event {
             Event::TextInput { ref text, timestamp, .. } => {
-                if self.visible && timestamp > self.visible_start_time + 50 {
+                if self.visible && timestamp > self.visible_start_time + 50 && !self.input_blocked {
                     self.add_text(text);
                 }
             }
@@ -176,45 +174,37 @@ impl<'a> Console<'a> {
                     if no_mods(keymod) && scancode == Some(self.config.get_scancode()) {
                         self.toggle(timestamp);
                         return;
-                    }
-
-                    match keycode { 
-                        Some(Keycode::LCtrl) |
-                        Some(Keycode::RCtrl) => self.ctrl = true,
-                        Some(Keycode::LShift) |
-                        Some(Keycode::RShift) => self.shift = true,
-                        Some(Keycode::C) => {
-                            if self.ctrl {
-                                self.input_buffer.push_str("^C");
-                                self.commit();
+                    } else if !self.input_blocked {
+                        match keycode { 
+                            Some(Keycode::C) => {
+                                if keymod.intersects(LCTRLMOD | RCTRLMOD) {
+                                    self.input_buffer.push_str("^C");
+                                    self.commit(false);
+                                }
                             }
-                        }
-                        Some(Keycode::Left) => {
-                            self.cursor_left();
-                        }
-                        Some(Keycode::Right) => {
-                            self.cursor_right();
-                        }
-                        Some(Keycode::Backspace) => {
-                            self.backspace();
-                        }
-                        Some(Keycode::Delete) => {
-                            if self.cursor_position < self.input_buffer.len() {
-                                self.cursor_position += 1;
+                            Some(Keycode::Left) => {
+                                self.cursor_left();
+                            }
+                            Some(Keycode::Right) => {
+                                self.cursor_right();
+                            }
+                            Some(Keycode::Backspace) => {
                                 self.backspace();
                             }
+                            Some(Keycode::Delete) => {
+                                if self.cursor_position < self.input_buffer.len() {
+                                    self.cursor_position += 1;
+                                    self.backspace();
+                                }
+                            }
+                            _ => (),
                         }
-                        _ => (),
                     }
                 }
             }
             Event::KeyUp { keycode, timestamp, .. } => {
-                if self.visible {
+                if self.visible && !self.input_blocked {
                     match keycode { 
-                        Some(Keycode::LCtrl) |
-                        Some(Keycode::RCtrl) => self.ctrl = false,
-                        Some(Keycode::LShift) |
-                        Some(Keycode::RShift) => self.shift = false,
                         Some(Keycode::Up) => {
                             // Special check that an automatic console toggle
                             // does not cause history navigation when holding the
@@ -236,7 +226,7 @@ impl<'a> Console<'a> {
                             }
                         }
                         Some(Keycode::Return) => {
-                            self.commit();
+                            self.commit(true);
                         }
                         Some(Keycode::End) => {
                             self.cursor_position = self.input_buffer.len();
@@ -257,10 +247,6 @@ impl<'a> Console<'a> {
         if !command.is_empty() {
             self.command_history.push(command.clone());
             self.last_command = command.clone();
-
-            if command == "exit" {
-                std::process::exit(0);
-            }
         }
     }
 
@@ -290,7 +276,7 @@ impl<'a> Console<'a> {
         }
     }
 
-    pub fn try_process_command(&mut self) -> Option<String> {
+    pub fn get_next_command(&mut self) -> Option<String> {
         if !self.last_command.is_empty() {
             let cmd = self.last_command.clone();
             self.last_command.clear();
@@ -313,11 +299,14 @@ impl<'a> Console<'a> {
         self.cursor_position += input.len();
     }
 
-    pub fn commit(&mut self) {
+    pub fn commit(&mut self, execute: bool) {
         let command = self.input_buffer.clone();
         writeln!(self, "hakka> {}", command).unwrap();
 
-        self.process_command();
+        if execute {
+            self.process_command();
+        }
+
         self.input_buffer.clear();
         self.cursor_position = 0;
         self.history_position = self.command_history.len();
@@ -362,26 +351,38 @@ impl<'a> Console<'a> {
                       Some(Rect::new(0, 0, self.size.0, self.size.1)))
                 .unwrap();
             self.generate_backbuffer_texture(&mut renderer);
-            self.render_leader(&mut renderer);
 
-            // Insert the cursor via a dodgy vertical line
-            let cursor_x =
-                60 + PADDING as i16 +
-                self.font.size_of(&self.input_buffer[..self.cursor_position]).unwrap().0 as i16;
-            // Draw a dodgy cursor
-            renderer.thick_line(cursor_x,
-                            self.size.1 as i16 - FONT_SIZE as i16 - PADDING as i16,
-                            cursor_x,
-                            self.size.1 as i16 - PADDING as i16,
-                            1,
-                            FONT_COLOR)
-                .unwrap();
+            if !self.input_blocked {
+                self.render_leader(&mut renderer);
+                // Insert the cursor via a dodgy vertical line
+                let cursor_x =
+                    60 + PADDING as i16 +
+                    self.font.size_of(&self.input_buffer[..self.cursor_position]).unwrap().0 as i16;
+                // Draw a dodgy cursor
+                renderer.thick_line(cursor_x,
+                                self.size.1 as i16 - FONT_SIZE as i16 - PADDING as i16,
+                                cursor_x,
+                                self.size.1 as i16 - PADDING as i16,
+                                1,
+                                FONT_COLOR)
+                    .unwrap();
 
-            if !self.input_buffer.is_empty() {
+                if !self.input_buffer.is_empty() {
+                    let text = Text::new(self.ttf_context,
+                                         &mut renderer,
+                                         &self.input_buffer[..],
+                                         Position::XY(60 + PADDING,
+                                                      self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
+                                         FONT_SIZE,
+                                         FONT_COLOR,
+                                         self.font_file);
+                    text.render(&mut renderer);
+                }
+            } else {
                 let text = Text::new(self.ttf_context,
                                      &mut renderer,
-                                     &self.input_buffer[..],
-                                     Position::XY(60 + PADDING,
+                                     "Press Ctrl+C or ENTER to cancel",
+                                     Position::XY(PADDING,
                                                   self.size.1 as i32 - FONT_SIZE as i32 - PADDING),
                                      FONT_SIZE,
                                      FONT_COLOR,
