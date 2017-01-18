@@ -126,16 +126,3 @@ fn assemble<P>(path: P) -> Vec<CodeSegment>
     let mut assembler = Assembler::new();
     assembler.assemble_file(path, 0xC000).unwrap()
 }
-
-
-// println!("{}",
-//
-// ((((0x0A - 0b11) * (0b10 * 0x4)) - (0x31)) as u32) *
-// ((
-// (((0x01 << 0x03) | 0b1) * 0x55555556 as u64) >> 0x20
-// ) as u16 *
-// (
-// ((0x01 << 0b11) as u8).pow(0b10) as u16
-// ) as u16 - 1) as u32);
-//
-//
