@@ -48,7 +48,10 @@ fn main() {
     let assets = Search::KidsThenParents(3, 3).for_folder("assets").unwrap();
 
     let default_font = assets.join("FantasqueSansMono-Bold.ttf");
-    let mut game_core = GameCore::new(&ttf_context, &mut renderer, default_font.to_str().unwrap());
+    let mut game_core = GameCore::new(1,
+                                      &ttf_context,
+                                      &mut renderer,
+                                      default_font.to_str().unwrap());
 
     let segments = assemble(local.join("level.asm"));
     game_core.vm.load_code_segments(segments);
