@@ -47,7 +47,7 @@ pub struct Console<'a> {
     texture: Texture,
     ttf_context: &'a Sdl2TtfContext,
     size: (u32, u32),
-    font: Font<'a>,
+    font: Font<'a, 'a>,
 }
 
 impl<'a> Console<'a> {
