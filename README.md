@@ -8,7 +8,7 @@ is being released to test the waters to see if people find it interesting.
 
 This game is built using [Rust](https://www.rust-lang.org/). You will need to [download and install Rust](https://www.rust-lang.org/en-US/install.html) before being able to build this game. 
 
-Hakka requires `SDL2`, `SDL2_image`, `SDL2_ttf` and `SDL2_gfx`.
+Hakka requires `SDL2`, `SDL2_image` and `SDL2_ttf`.
 
 [You can see instructions for installing the SDL2 development libraries here](https://github.com/AngryLawyer/rust-sdl2#sdl20-development-libraries)
 
@@ -18,7 +18,6 @@ If you're on OSX and have Homebrew installed, it should be as simple as:
 brew install SDL2
 brew install SDL2_image
 brew install SDL2_ttf
-brew install SDL2_gfx
 ```
 
 Once the SDL dependencies are installed, you can run the game via:

@@ -23,5 +23,5 @@ app_dirs = "1.1.1"
 rustc-serialize = "0.3.22"
 
 [dependencies.sdl2]
-version = "*"
-features = ["image", "ttf", "gfx"]
+version = "^0.29"
+features = ["image", "ttf"]
