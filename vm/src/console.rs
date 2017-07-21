@@ -4,10 +4,9 @@ use std::path::Path;
 use std::io::Write;
 
 use sdl2::event::Event;
-use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::*;
 use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::rect::Rect;
+use sdl2::rect::{Point, Rect};
 use sdl2::render::{BlendMode, Renderer, Texture, TextureQuery};
 use sdl2::surface::Surface;
 use sdl2::ttf::{Font, Sdl2TtfContext, STYLE_BOLD};
@@ -359,12 +358,10 @@ impl<'a> Console<'a> {
                     60 + PADDING as i16 +
                     self.font.size_of(&self.input_buffer[..self.cursor_position]).unwrap().0 as i16;
                 // Draw a dodgy cursor
-                renderer.thick_line(cursor_x,
-                                self.size.1 as i16 - FONT_SIZE as i16 - PADDING as i16,
-                                cursor_x,
-                                self.size.1 as i16 - PADDING as i16,
-                                1,
-                                FONT_COLOR)
+                renderer.draw_line(Point::new(cursor_x as i32,
+                                self.size.1 as i32 - FONT_SIZE as i32 - PADDING as i32),
+                                Point::new(cursor_x as i32,
+                                self.size.1 as i32 - PADDING as i32))
                     .unwrap();
 
                 if !self.input_buffer.is_empty() {
@@ -398,24 +395,20 @@ impl<'a> Console<'a> {
         // Render the border
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 255));
         // North
-        renderer.thick_line(0, 0, self.size.0 as i16, 0, 1, BORDER_COLOR).unwrap();
+        renderer.draw_line(Point::new(0, 0), Point::new(self.size.0 as i32, 0)).unwrap();
 
         // East
-        renderer.thick_line(self.size.0 as i16,
-                        0,
-                        self.size.0 as i16,
-                        self.size.1 as i16,
-                        1,
-                        BORDER_COLOR)
+        renderer.draw_line(Point::new(self.size.0 as i32,
+                        0),
+                        Point::new(self.size.0 as i32,
+                        self.size.1 as i32))
             .unwrap();
 
         // South
-        renderer.thick_line(0,
-                        self.size.1 as i16 - 1,
-                        self.size.0 as i16,
-                        self.size.1 as i16 - 1,
-                        1,
-                        BORDER_COLOR)
+        renderer.draw_line(Point::new(0,
+                        self.size.1 as i32 - 1),
+                        Point::new(self.size.0 as i32,
+                        self.size.1 as i32 - 1))
             .unwrap();
     }
 
