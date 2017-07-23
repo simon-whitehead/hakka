@@ -68,7 +68,7 @@ fn main() {
                              Color::RGBA(0, 0, 0, 255),
                              font.to_str().unwrap());
 
-    let mut game_core = GameCore::new(&ttf_context, &mut renderer, font.to_str().unwrap()); 
+    let mut game_core = GameCore::new(150, &ttf_context, &mut renderer, font.to_str().unwrap());
 
     let TextureQuery { width: ship_width, .. } = ship_texture.query();
     init_cpu_mem(&mut game_core.vm.cpu, &mut renderer, ship_width);

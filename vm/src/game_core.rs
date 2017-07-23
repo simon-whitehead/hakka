@@ -18,13 +18,13 @@ pub struct GameCore<'a> {
 }
 
 impl<'a> GameCore<'a> {
-    pub fn new(ttf_context: &'a Sdl2TtfContext,
+    pub fn new(clock_rate: u32,
+               ttf_context: &'a Sdl2TtfContext,
                mut renderer: &mut Renderer,
                font_file: &'a str)
-               -> GameCore<'a>
-   {
+               -> GameCore<'a> {
         let cpu = Cpu::new();
-        let vm = VirtualMachine::new(cpu, 150, &ttf_context, &mut renderer, font_file);
+        let vm = VirtualMachine::new(cpu, clock_rate, &ttf_context, &mut renderer, font_file);
 
         GameCore {
             vm: vm,
@@ -36,17 +36,18 @@ impl<'a> GameCore<'a> {
     pub fn process_event(&mut self, event: &Event) {
         match *event {
             // Stop a blocking event
-            Event::KeyDown { keycode, keymod, .. }
-            if (keycode == Some(Keycode::C) && keymod.intersects(LCTRLMOD | RCTRLMOD) || keycode == Some(Keycode::Return)) &&
-               self.unblock_event.is_some() => {
+            Event::KeyDown { keycode, keymod, .. } if (keycode == Some(Keycode::C) &&
+                                                       keymod.intersects(LCTRLMOD | RCTRLMOD) ||
+                                                       keycode == Some(Keycode::Return)) &&
+                                                      self.unblock_event.is_some() => {
                 if let Some(ref unblock_event) = self.unblock_event {
                     unblock_event(&mut self.vm);
                 }
                 self.vm.console.input_blocked = false;
                 self.unblock_event = None;
-            },
+            }
             // Let the console handle the event
-            _ => self.vm.console.process(event)
+            _ => self.vm.console.process(event),
         }
     }
 
@@ -55,7 +56,9 @@ impl<'a> GameCore<'a> {
             let (result, unblock_event) = self.command_system.execute(cmd, &mut self.vm);
 
             if let CommandResult::NotFound = result {
-                writeln!(self.vm.console, "Command not recognized, type 'help' for a list of commands").unwrap();
+                writeln!(self.vm.console,
+                         "Command not recognized, type 'help' for a list of commands")
+                    .unwrap();
             }
 
             if unblock_event.is_some() {
@@ -69,4 +72,3 @@ impl<'a> GameCore<'a> {
         self.vm.cycle();
     }
 }
-
